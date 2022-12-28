@@ -53,33 +53,33 @@ class LogManager;
     *( Logger ) <<
 
 /* -------------------------------------------------- 流式文件输出宏 ----------------------------------- */
-#define DEBUG_FILE_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define DEBUG_FILE_STREAM_LOG( Logger, name )                                              \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::DEBUG );                                     \
     *( Logger ) <<
 
-#define ERROR_FILE_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define ERROR_FILE_STREAM_LOG( Logger, name )                                              \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::ERROR );                                     \
     *( Logger ) <<
 
-#define WERN_FILE_STREAM_LOG( Logger, name )                                                \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define WERN_FILE_STREAM_LOG( Logger, name )                                               \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::WERN );                                      \
     *( Logger ) <<
 
-#define DOTKNOW_FILE_STREAM_LOG( Logger, name )                                             \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define DOTKNOW_FILE_STREAM_LOG( Logger, name )                                            \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::DOTKNOW );                                   \
     *( Logger ) <<
 
-#define INFO_FILE_STREAM_LOG( Logger, name )                                                \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define INFO_FILE_STREAM_LOG( Logger, name )                                               \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::INFO );                                      \
     *( Logger ) <<
 
-#define FALTAL_FILE_STREAM_LOG( Logger, name )                                              \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );      \
+#define FALTAL_FILE_STREAM_LOG( Logger, name )                                             \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
     Logger->set_level( star::LogLevel::level::FATAL );                                     \
     *( Logger ) <<
 
@@ -479,7 +479,10 @@ class FileLogAppender : public LogAppender
 {
 public:
     FileLogAppender( LogLevel::level in_level )
-    : LogAppender( in_level ){ generate_log_file(); };
+    : LogAppender( in_level )
+    {
+        generate_log_file();
+    };
 
     FileLogAppender( LogEvent::ptr in_event, LogLevel::level in_level )
     : LogAppender( in_event, in_level ){};
@@ -491,7 +494,7 @@ public:
     void reopen();
 
     /* 设置文件名 */
-    void set_name(std::string name) { this->file_name = name; }
+    void set_name( std::string name ) { this->file_name = name; }
 
     /* 获取文件名 */
     std::string get_name() { return this->file_name; }
@@ -545,21 +548,7 @@ public:
         this->root->log( in_level, in_event );
     };
 
-    void set_appender( LogAppender::ptr in_appender )
-    {
-        this->add_appender( in_appender );
-        this->root = in_appender;
-        m_appender_list.push_back( in_appender );
-    }
-
-    void set_appender( size_t index )
-    {
-        if ( index < 0 && index > m_appender_list.size() )
-        {
-            return;
-        }
-        root = m_appender_list[index];
-    }
+    void set_appender( LogAppender::ptr in_appender ) { this->root = in_appender; }
 
     void set_appender( Appender flag, LogLevel::level in_level )
     {
@@ -581,31 +570,6 @@ public:
         }
     }
 
-    void add_appender( LogAppender::ptr new_appender )
-    {
-        m_appender_list.push_back( new_appender );
-    };
-
-    void del_appender( std::string LogName )
-    {
-        size_t i = 0;
-        for ( i = 0; i < this->m_appender_list.size(); i++ )
-        {
-            if ( this->m_appender_list[i]->get_event()->get_name() == LogName )
-            {
-                this->m_appender_list.erase( this->m_appender_list.begin() + i );
-                break;
-            }
-        }
-
-        if ( i == this->m_appender_list.size() - 1 )
-        {
-            std::cout << "Delete appender"
-                      << " " << LogName << " "
-                      << "Error!" << std::endl;
-        }
-    };
-
     LogAppender::ptr get_root() { return this->root; }
 
     /*
@@ -617,8 +581,10 @@ public:
         {
             this->m_formatter->get_formatted()->get_formatted() << std::endl;
             this->log( m_level, this->m_formatter->get_formatted() );
+            std::string temp = this->m_formatter->get_formatted()->get_formatted().str();
+            log_list.push_back( temp );
             this->m_formatter->get_formatted()->get_formatted().clear();
-            this->m_formatter->get_formatted()->get_formatted().str("");    /* 清空字符串缓冲区 */
+            this->m_formatter->get_formatted()->get_formatted().str( "" ); /* 清空字符串缓冲区 */
         }
         else
         {
@@ -634,18 +600,19 @@ public:
     void format( const char* patten, std::initializer_list< std::string > args )
     {
         this->m_formatter->get_formatted()->get_formatted().clear();
-        this->m_formatter->get_formatted()->get_formatted().str("");    /* 清空字符串缓冲区 */
-        std::string temp = this->m_formatter->get_formatted()->get_formatted().str();
+        this->m_formatter->get_formatted()->get_formatted().str( "" ); /* 清空字符串缓冲区 */
         this->m_formatter->format( patten, args );
         this->log( this->m_formatter->get_formatted()->getLevel(), this->m_formatter->get_formatted() );
+        std::string temp = this->m_formatter->get_formatted()->get_formatted().str();
+        log_list.push_back( temp );
     };
 
 private:
-    std::vector< LogAppender::ptr > m_appender_list; /* 日志输出位置列表 */
-    LogAppender::ptr root;                           /* 默认 appender */
-    LogLevel::level m_level;                         /* 日志输出级别 */
-    std::string m_name;                              /* 日志器名称 */
-    LogFormatter::ptr m_formatter;                   /* 格式化器 */
+    std::vector< std::string > log_list; /* 日志输出位置列表 */
+    LogAppender::ptr root;               /* 默认 appender */
+    LogLevel::level m_level;             /* 日志输出级别 */
+    std::string m_name;                  /* 日志器名称 */
+    LogFormatter::ptr m_formatter;       /* 格式化器 */
 };
 
 /*
@@ -662,13 +629,20 @@ public:
 
     Logger::ptr get_root() { return this->m_root; };
 
+    void add_logger( Logger::ptr in_logger )
+    {
+        this->m_loggerList[in_logger->m_name] = in_logger;
+    }
+
+    void flash( std::string path );
+
 private:
     std::map< std::string, Logger::ptr > m_loggerList;
     Logger::ptr m_root;
 };
 
 /* 生成随机字符串 */
-std::string random_string();
+std::string random_string( size_t len );
 
 } // namespace star
 

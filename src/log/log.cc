@@ -371,4 +371,17 @@ void FileLogAppender::reopen()
     in.open( this->file_name );
 }
 
+void LogManager::flash( std::string path )
+{
+    std::ofstream in( path );
+
+    for ( auto it : this->m_loggerList )
+    {
+        for ( auto obj : it.second->log_list )
+        {
+            in << obj << "\n";
+        }
+    }
+}
+
 }
