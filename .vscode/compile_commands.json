@@ -1,6 +1,11 @@
 [
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-o", "build/.objs/star/linux/x86_64/src/main.cpp.o", "src/main.cpp"],
-  "file": "src/main.cpp"
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-DLog", "-o", "build/.objs/test/linux/x86_64/debug/src/log/log.cc.o", "src/log/log.cc"],
+  "file": "src/log/log.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-DLog", "-o", "build/.objs/test/linux/x86_64/debug/src/log/test/main.cc.o", "src/log/test/main.cc"],
+  "file": "src/log/test/main.cc"
 }]
