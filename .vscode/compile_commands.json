@@ -1,11 +1,31 @@
 [
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-DLog", "-o", "build/.objs/test/linux/x86_64/debug/src/log/log.cc.o", "src/log/log.cc"],
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DLog", "-o", "build/.objs/Logger/linux/x86_64/debug/src/log/log.cc.o", "src/log/log.cc"],
   "file": "src/log/log.cc"
 },
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-DLog", "-o", "build/.objs/test/linux/x86_64/debug/src/log/test/main.cc.o", "src/log/test/main.cc"],
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DThread", "-o", "build/.objs/thread/linux/x86_64/debug/src/thread/thread.cc.o", "src/thread/thread.cc"],
+  "file": "src/thread/thread.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DLog", "-o", "build/.objs/Logger-test/linux/x86_64/debug/src/log/test/main.cc.o", "src/log/test/main.cc"],
   "file": "src/log/test/main.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/Settings/linux/x86_64/debug/src/setting/setting.cc.o", "src/setting/setting.cc"],
+  "file": "src/setting/setting.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DThread", "-o", "build/.objs/thread_test/linux/x86_64/debug/src/thread/thread.cc.o", "src/thread/thread.cc"],
+  "file": "src/thread/thread.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++17", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/setting-test/linux/x86_64/debug/src/setting/test/main.cc.o", "src/setting/test/main.cc"],
+  "file": "src/setting/test/main.cc"
 }]

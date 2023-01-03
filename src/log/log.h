@@ -22,66 +22,66 @@ class LogFormatter;
 class LogManager;
 
 /* ----------------------------------------------------------------- 流式 std 日志输出宏 ----------------------------------- */
-#define DEBUG_STD_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::DEBUG );                                     \
-    *( Logger ) <<
+#define DEBUG_STD_STREAM_LOG( LoggerName, name )                                           \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::DEBUG );                                 \
+    *( LoggerName ) << "<< DEBUG >> "
 
-#define ERROR_STD_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::ERROR );                                     \
-    *( Logger ) <<
+#define ERROR_STD_STREAM_LOG( LoggerName, name )                                           \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::ERROR );                                 \
+    *( LoggerName ) << "<< ERROR >>"
 
-#define WERN_STD_STREAM_LOG( Logger, name )                                                \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::WERN );                                      \
-    *( Logger ) <<
+#define WERN_STD_STREAM_LOG( LoggerName, name )                                            \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::WERN );                                  \
+    *( LoggerName ) << "<< WERN >> "
 
-#define DOTKNOW_STD_STREAM_LOG( Logger, name )                                             \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::DOTKNOW );                                   \
-    *( Logger ) <<
+#define DOTKNOW_STD_STREAM_LOG( LoggerName, name )                                         \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::DOTKNOW );                               \
+    *( LoggerName ) << "<< DOTKNOW >>"
 
-#define INFO_STD_STREAM_LOG( Logger, name )                                                \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::INFO );                                      \
-    *( Logger ) <<
+#define INFO_STD_STREAM_LOG( LoggerName, name )                                            \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::INFO );                                  \
+    *( LoggerName ) << "<< INFO >> "
 
-#define FALTAL_STD_STREAM_LOG( Logger, name )                                              \
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );      \
-    Logger->set_level( star::LogLevel::level::FATAL );                                     \
-    *( Logger ) <<
+#define FALTAL_STD_STREAM_LOG( LoggerName, name )                                          \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::name );  \
+    LoggerName->set_level( star::LogLevel::level::FATAL );                                 \
+    *( LoggerName ) << "<< FATAL >> "
 
 /* -------------------------------------------------- 流式文件输出宏 ----------------------------------- */
-#define DEBUG_FILE_STREAM_LOG( Logger, name )                                              \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::DEBUG );                                     \
-    *( Logger ) <<
+#define DEBUG_FILE_STREAM_LOG( LoggerName, name )                                                \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::DEBUG );                                       \
+    *( LoggerName ) << "<< DEBUG >> "
 
-#define ERROR_FILE_STREAM_LOG( Logger, name )                                              \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::ERROR );                                     \
-    *( Logger ) <<
+#define ERROR_FILE_STREAM_LOG( LoggerName, name )                                          \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::ERROR );                                 \
+    *( LoLoggerNameger ) << "<< ERROR >>"
 
-#define WERN_FILE_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::WERN );                                      \
-    *( Logger ) <<
+#define WERN_FILE_STREAM_LOG( LoggerName, name )                                           \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::WERN );                                  \
+    *( LoggerName ) << "<< WERN >> "
 
-#define DOTKNOW_FILE_STREAM_LOG( Logger, name )                                            \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::DOTKNOW );                                   \
-    *( Logger ) <<
+#define DOTKNOW_FILE_STREAM_LOG( LoggerName, name )                                        \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::DOTKNOW );                               \
+    *( LoggerName ) << "<< DOTKNOW >>"
 
-#define INFO_FILE_STREAM_LOG( Logger, name )                                               \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::INFO );                                      \
-    *( Logger ) <<
+#define INFO_FILE_STREAM_LOG( LoggerName, name )                                           \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::INFO );                                  \
+    *( LoggerName ) << "<< INFO >> "
 
-#define FALTAL_FILE_STREAM_LOG( Logger, name )                                             \
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name );     \
-    Logger->set_level( star::LogLevel::level::FATAL );                                     \
-    *( Logger ) <<
+#define FALTAL_FILE_STREAM_LOG( LoggerName, name )                                         \
+    LoggerName->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::name ); \
+    LoggerName->set_level( star::LogLevel::level::FATAL );                                 \
+    *( LoggerName ) << "<< FATAL >> "
 
 /*
     日志级别
@@ -99,10 +99,10 @@ public:
     enum level
     {
         DOTKNOW = 0,
-        ERROR   = 1,
+        INFO    = 1, 
         WERN    = 2,
         DEBUG   = 3,
-        INFO    = 4,
+        ERROR   = 4,
         FATAL   = 5
     };
 
@@ -579,7 +579,6 @@ public:
     {
         if ( str == "%0" )
         {
-            this->m_formatter->get_formatted()->get_formatted() << std::endl;
             this->log( m_level, this->m_formatter->get_formatted() );
             std::string temp = this->m_formatter->get_formatted()->get_formatted().str();
             log_list.push_back( temp );
@@ -588,7 +587,30 @@ public:
         }
         else
         {
-            this->m_formatter->get_formatted()->get_formatted() << str;
+            const char* temp = str.c_str();
+            while ( *temp )
+            {
+                if ( *temp != '%' )
+                {
+                    this->m_formatter->get_formatted()->get_formatted() << *temp;
+                    temp++;
+                }
+                else 
+                {
+                    temp++;
+                    switch (*temp) 
+                    {
+                        case 'n':
+                            this->m_formatter->get_formatted()->get_formatted() << "\n";
+                            temp++;
+                            break;
+                        case 'b':
+                            this->m_formatter->get_formatted()->get_formatted() << "\t";
+                            temp++;
+                            break;
+                    }
+                }
+            }
         }
 
         return *this;
