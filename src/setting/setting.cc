@@ -8,11 +8,11 @@
 #include "./setting.h"
 
 #include <fstream>
-
-#include <json/value.h>
+#include <filesystem>
 
 namespace star
 {
+
 void config::parse()
 {
     std::ifstream ifs;
@@ -21,7 +21,7 @@ void config::parse()
     if ( !ifs.is_open() )
     {
         /* 打开文件失败 */
-        ERROR_STD_STREAM_LOG( m_logger, DOTKNOW ) << "Open File Error!%n"
+        ERROR_STD_STREAM_LOG( m_logger ) << "Open File Error!%n"
                                                   << "%0";
         return;
     }
@@ -29,7 +29,7 @@ void config::parse()
     if ( !read.parse( ifs, this->m_root ) )
     {
         /* 解析失败 */
-        ERROR_STD_STREAM_LOG( m_logger, DOTKNOW ) << "Parse File Error!%n"
+        ERROR_STD_STREAM_LOG( m_logger ) << "Parse File Error!%n"
                                                   << "%0";
         return;
     }
@@ -49,7 +49,7 @@ void config::fllush()
     out.open( this->m_default_path );
     if ( !out.is_open() )
     {
-        ERROR_STD_STREAM_LOG( m_logger, DOTKNOW ) << "Open File Error!%n"
+        ERROR_STD_STREAM_LOG( m_logger ) << "Open File Error!%n"
                                                   << "%0";
         return;
     }
@@ -61,7 +61,7 @@ void config::fllush()
 template< class K >
 Json::Value& config::get( K key )
 {
-    this->m_root[key];
+    return this->m_root[key];
 }
 
 template< class K, class V >
@@ -100,7 +100,7 @@ config::ptr Setting_Manageer::find_setting( std::string name )
         }
     }
 
-    DEBUG_STD_STREAM_LOG( m_manager.get_root(), DOTKNOW ) << "<< INFO >>"
+    DEBUG_STD_STREAM_LOG( m_manager.get_root() ) << "<< INFO >>"
                                                           << " "
                                                           << "Parse File Error!%n"
                                                           << "%0";

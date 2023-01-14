@@ -8,7 +8,7 @@ int main()
     star::Logger::ptr Logger( new star::Logger );
     manager.add_logger( Logger );
 
-    DEBUG_STD_STREAM_LOG( Logger, DOTKNOW ) << "<< DEBUG >>"
+    DEBUG_STD_STREAM_LOG( Logger ) << "<< DEBUG >>"
                                             << " "
                                             << "Hello World%n"
                                             << "%0";
@@ -16,7 +16,7 @@ int main()
     Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::DOTKNOW );
     Logger->format( "%p %f %l %m %n", { "ERROR", "log.cc", "11", "RUN ERROR!" } );
 
-    DEBUG_FILE_STREAM_LOG( Logger, DOTKNOW ) << "<< DEBUG >>"
+    DEBUG_FILE_STREAM_LOG( Logger ) << "<< DEBUG >>"
                                              << " "
                                              << "Hello World"
                                              << "%0";
@@ -24,7 +24,7 @@ int main()
     Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::DOTKNOW );
     Logger->format( "%p %f %l %m %n", { "ERROR", "log.cc", "11", "RUN ERROR!" } );
 
-    manager.flash( star::random_string( 100 ) );
-
+    ALL_LOG_TO_FILE(manager);
+    
     return 0;
 }

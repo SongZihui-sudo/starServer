@@ -138,7 +138,7 @@ void FileLogAppender::log( LogLevel::level in_level, LogEvent::ptr in_event )
     }
 }
 
-void LogFormatter::format( const char* patten, std::initializer_list< std::string > arg )
+void LogFormatter::format( const char* pattern, std::initializer_list< std::string > arg )
 {
     /* 可变参数列表 */
     std::vector< std::string > arg_list = arg;
@@ -151,25 +151,25 @@ void LogFormatter::format( const char* patten, std::initializer_list< std::strin
 
     size_t index = 0;
 
-    while ( *patten )
+    while ( *pattern )
     {
         std::ostringstream current;
         m_error = false;
-        if ( *patten != '%' )
+        if ( *pattern != '%' )
         {
             flag_parse = true;
-            log_fotmated_Str << *patten;
-            patten++;
+            log_fotmated_Str << *pattern;
+            pattern++;
         }
         else
         {
             flag_case = true;
-            patten++;
+            pattern++;
             uint32_t u32_temp;
             uint64_t u64_temp;
             LogLevel::level level_temp;
             /* 解析 格式串 */
-            switch ( *patten )
+            switch ( *pattern )
             {
 
                 /*                                                                         \
@@ -187,73 +187,73 @@ void LogFormatter::format( const char* patten, std::initializer_list< std::strin
                 */
                 case 'T':
                     TabItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 't':
                     u32_temp = std::stoul( arg_list[index] );
                     m_event->set_threadId( u32_temp );
                     ThreadIdItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'N':
                     m_event->set_threadName( arg_list[index] );
                     ThreadNameItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'F':
                     u32_temp = std::stoul( arg_list[index] );
                     m_event->set_fiberId( u32_temp );
                     FiberIdItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'p':
                     level_temp = LogLevel::toLevel( arg_list[index] );
                     m_event->set_level( level_temp );
                     LevelItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'c':
                     m_event->set_logName( arg_list[index] );
                     LogNameItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'f':
                     m_event->set_file( arg_list[index] );
                     FileItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'l':
                     u32_temp = std::stoul( arg_list[index] );
                     m_event->set_lineNum( u32_temp );
                     LineItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'm':
                     m_event->set_detail( arg_list[index] );
                     MessageItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'n':
                     NewLineItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case 'D':
                     u64_temp = std::stoull( arg_list[index] );
                     m_event->set_time( u64_temp );
                     TimeItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 case '0':
                     EndItem::format( current, m_event );
-                    patten++;
+                    pattern++;
                     break;
                 /* 错误的格式 */
                 default:
                 {
                     current << "<< Format Error >>"
-                            << " " << patten;
+                            << " " << pattern;
                     this->m_error = true;
-                    patten++;
+                    pattern++;
                 }
             }
             log_fotmated_Str << " " << current.str();
@@ -352,11 +352,11 @@ std::string random_string( size_t len )
     return string;
 }
 
-void FileLogAppender::generate_log_file()
+void FileLogAppender::generate_log_file(std::ofstream& in)
 {
     int random_len   = rand() % 100;
     std::string name = random_string( random_len );
-    this->in.open( name );
+    in.open( name );
     in << "<< Star Sever Log File >>\n";
 }
 
@@ -371,9 +371,10 @@ void FileLogAppender::reopen()
     in.open( this->file_name );
 }
 
-void LogManager::flash( std::string path )
+void LogManager::tofile()
 {
-    std::ofstream in( path );
+    std::ofstream in;
+    FileLogAppender::generate_log_file(in);
 
     for ( auto it : this->m_loggerList )
     {

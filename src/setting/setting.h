@@ -9,15 +9,13 @@
 #define SETTING_H
 
 #include <filesystem>
-#include <json/json.h>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
+#include <json/json.h>
 
 #include "../log/log.h"
-
-using namespace std::filesystem;
 
 namespace star
 {
@@ -26,10 +24,12 @@ class config
 {
 public:
     typedef std::shared_ptr< config > ptr;
-
-    config() { this->m_logger.reset(new Logger); };
-
-    config( std::string in_path ) { this->m_default_path = in_path; this->m_logger.reset(new Logger); }
+    config( std::filesystem::path in_path )
+    {
+        this->m_default_path = in_path;
+        this->m_logger.reset( new Logger );
+        this->parse();
+    }
 
     ~config(){};
 
@@ -73,13 +73,13 @@ public:
     /*
         设置路径
     */
-    void set_path( std::string in_path ) { this->m_default_path = in_path; }
+    void set_path( std::filesystem::path in_path ) { this->m_default_path = in_path; }
 
 private:
-    std::string m_default_path = "./setting.json"; /* 默认的配置文件路径 */
-    Json::Value m_root;                             /* 配置文件内容 */
-    std::string m_name;                             /* 对应模块名 */
-    Logger::ptr m_logger;                     /* 日志器 */
+    std::filesystem::path m_default_path = "./setting.json"; /* 默认的配置文件路径 */
+    Json::Value m_root;                                      /* 配置文件内容 */
+    std::string m_name;                                      /* 对应模块名 */
+    Logger::ptr m_logger;                                    /* 日志器 */
 };
 
 /* 设置管理器 */
@@ -114,8 +114,11 @@ public:
 
 private:
     std::map< std::string, config::ptr > m_setting_list; /* 模块与相关设置的表 */
-    LogManager m_manager;                          /* 日志管理器 */
+    LogManager m_manager;                                /* 日志管理器 */
 };
+
+/* 全局设置 */
+static config::ptr globeConfig(new config("./globeSettings.json"));
 
 };
 

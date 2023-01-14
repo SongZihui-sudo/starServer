@@ -6,7 +6,7 @@
 int main()
 {
     star::Setting_Manageer::ptr sm(new star::Setting_Manageer);
-    star::config::ptr cur(new star::config);
+    star::config::ptr cur(new star::config("./setting.json"));
 
     sm->add_setting("test", cur);
 
