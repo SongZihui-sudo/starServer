@@ -1,28 +1,8 @@
 [
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/Settings/linux/x86_64/debug/src/setting/setting.cc.o", "src/setting/setting.cc"],
-  "file": "src/setting/setting.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/fiber/linux/x86_64/debug/src/thread/fiber.cc.o", "src/thread/fiber.cc"],
-  "file": "src/thread/fiber.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread_test/linux/x86_64/debug/src/thread/test/test_thread.cc.o", "src/thread/test/test_thread.cc"],
-  "file": "src/thread/test/test_thread.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread/linux/x86_64/debug/src/thread/thread.cc.o", "src/thread/thread.cc"],
   "file": "src/thread/thread.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DProtocol", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/protocol-test/linux/x86_64/debug/src/protocol/test/testprotocol.cc.o", "src/protocol/test/testprotocol.cc"],
-  "file": "src/protocol/test/testprotocol.cc"
 },
 {
   "directory": "/home/ubuntu/star",
@@ -31,23 +11,8 @@
 },
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/fiber_test/linux/x86_64/debug/src/thread/test/test_fiber.cc.o", "src/thread/test/test_fiber.cc"],
-  "file": "src/thread/test/test_fiber.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DProtocol", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/serialize-test/linux/x86_64/debug/src/protocol/test/testJsonSerial.cc.o", "src/protocol/test/testJsonSerial.cc"],
-  "file": "src/protocol/test/testJsonSerial.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DLog", "-o", "build/.objs/Logger/linux/x86_64/debug/src/log/log.cc.o", "src/log/log.cc"],
-  "file": "src/log/log.cc"
-},
-{
-  "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DDatabase", "-I", "/home/ubuntu/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-o", "build/.objs/database/linux/x86_64/debug/src/db/database.cc.o", "src/db/database.cc"],
-  "file": "src/db/database.cc"
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DProtocol", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/protocol-test/linux/x86_64/debug/src/protocol/test/testprotocol.cc.o", "src/protocol/test/testprotocol.cc"],
+  "file": "src/protocol/test/testprotocol.cc"
 },
 {
   "directory": "/home/ubuntu/star",
@@ -56,13 +21,53 @@
 },
 {
   "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/Settings/linux/x86_64/debug/src/setting/setting.cc.o", "src/setting/setting.cc"],
+  "file": "src/setting/setting.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/fiber_test/linux/x86_64/debug/src/thread/test/test_fiber.cc.o", "src/thread/test/test_fiber.cc"],
+  "file": "src/thread/test/test_fiber.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DDatabase", "-I", "/home/ubuntu/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-o", "build/.objs/database/linux/x86_64/debug/src/db/database.cc.o", "src/db/database.cc"],
+  "file": "src/db/database.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSocket", "-o", "build/.objs/socket-test/linux/x86_64/debug/src/socket/test/main.cc.o", "src/socket/test/main.cc"],
+  "file": "src/socket/test/main.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSocket", "-o", "build/.objs/socket/linux/x86_64/debug/src/socket/address.cc.o", "src/socket/address.cc"],
+  "file": "src/socket/address.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSocket", "-o", "build/.objs/socket/linux/x86_64/debug/src/socket/socket.cc.o", "src/socket/socket.cc"],
+  "file": "src/socket/socket.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/fiber/linux/x86_64/debug/src/thread/fiber.cc.o", "src/thread/fiber.cc"],
+  "file": "src/thread/fiber.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/scheduler/linux/x86_64/debug/src/thread/scheduler.cc.o", "src/thread/scheduler.cc"],
   "file": "src/thread/scheduler.cc"
 },
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DCommon", "-o", "build/.objs/common-test/linux/x86_64/debug/src/common/test/main.cc.o", "src/common/test/main.cc"],
-  "file": "src/common/test/main.cc"
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DLog", "-o", "build/.objs/Logger/linux/x86_64/debug/src/log/log.cc.o", "src/log/log.cc"],
+  "file": "src/log/log.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DProtocol", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/serialize-test/linux/x86_64/debug/src/protocol/test/testJsonSerial.cc.o", "src/protocol/test/testJsonSerial.cc"],
+  "file": "src/protocol/test/testJsonSerial.cc"
 },
 {
   "directory": "/home/ubuntu/star",
@@ -71,11 +76,21 @@
 },
 {
   "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/setting-test/linux/x86_64/debug/src/setting/test/main.cc.o", "src/setting/test/main.cc"],
+  "file": "src/setting/test/main.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/scheduler_test/linux/x86_64/debug/src/thread/test/test_scheduler.cc.o", "src/thread/test/test_scheduler.cc"],
   "file": "src/thread/test/test_scheduler.cc"
 },
 {
   "directory": "/home/ubuntu/star",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DSetting", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/setting-test/linux/x86_64/debug/src/setting/test/main.cc.o", "src/setting/test/main.cc"],
-  "file": "src/setting/test/main.cc"
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DCommon", "-o", "build/.objs/common-test/linux/x86_64/debug/src/common/test/main.cc.o", "src/common/test/main.cc"],
+  "file": "src/common/test/main.cc"
+},
+{
+  "directory": "/home/ubuntu/star",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++2a", "-DThread", "-I", "/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread_test/linux/x86_64/debug/src/thread/test/test_thread.cc.o", "src/thread/test/test_thread.cc"],
+  "file": "src/thread/test/test_thread.cc"
 }]

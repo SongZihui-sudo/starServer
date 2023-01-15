@@ -36,6 +36,9 @@ class LogManager;
 #define STAR_UNLIKELY( x ) ( x )
 #endif
 
+#define S(name) \
+    std::to_string(name)
+
 /* 断言宏封装 */
 #define STAR_ASSERT( x, loggerName )                                                       \
     if ( STAR_UNLIKELY( !( x ) ) )                                                         \

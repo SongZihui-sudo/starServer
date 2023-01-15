@@ -8,6 +8,7 @@ includes("./src/thread")
 includes("./src/common")
 includes("./src/db")
 includes("./src/protocol")
+includes("./src/socket")
 
 -- 配置配置标准
 set_languages("c99", "c++20")
