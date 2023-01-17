@@ -2,13 +2,18 @@
 add_rules("mode.release", "mode.debug")
 
 -- 子目标
-includes("./src/log")
-includes("./src/setting")
-includes("./src/thread")
-includes("./src/common")
-includes("./src/db")
-includes("./src/protocol")
-includes("./src/socket")
+includes("./src/modules/log")
+includes("./src/modules/setting")
+includes("./src/modules/thread")
+includes("./src/modules/common")
+includes("./src/modules/db")
+includes("./src/modules/protocol")
+includes("./src/modules/socket")
+includes("./src/modules/Scheduler")
+includes("./src/core/chunk_server")
+includes("./src/core/master_server")
+
+add_includedirs("./src/")
 
 -- 配置配置标准
 set_languages("c99", "c++20")

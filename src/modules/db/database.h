@@ -163,6 +163,11 @@ public:
         return nullptr;
     }; /* 格式化数据库命令 */
 
+    void get_leveldbObj(leveldb::DB* copy)
+    {
+        copy = this->m_db;
+    }
+
 public:
     /* 加入一对键值 */
     bool Put(std::string key, std::string value);

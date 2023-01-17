@@ -1,0 +1,8 @@
+{
+    "IPAddress": "81.68.175.186",
+    "Port": 7777,
+    "AddressType": "IPv4",
+    "DBpath": "./ChunkDB",
+    "DBname": "ChunkDB",
+    "ServerName": "TestServer"
+}

@@ -8,6 +8,7 @@
         "-I${workspaceFolder}", // 项目根目录
         "-I/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", // jsoncpp 库
         "-I/home/ubuntu/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include",   // Leveldb 数据库
-        "-I/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include"   // libaco 库   
+        "-I/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include",   // libaco 库 
+        "-I${workspaceFolder}/src/", // star.h
     ]
 }

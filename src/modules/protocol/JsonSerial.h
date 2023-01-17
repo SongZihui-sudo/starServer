@@ -4,6 +4,8 @@
  * desc: 字节数组---实现序列化和反序列化
  * date: 2023-1-13
  */
+#ifndef JSONSERIAL_H
+#define JSONSERIAL_H
 
 #include <cstddef>
 #include <iterator>
@@ -413,3 +415,5 @@ private:
 };
 
 }
+
+#endif

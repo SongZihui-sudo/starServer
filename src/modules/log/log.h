@@ -171,7 +171,7 @@ static std::map< LogLevel::level, std::string > colorTab = {
 #define BOLDWHITE "\033[1m\033[37m"   /* 加粗白 */
     { LogLevel::level::DEBUG, YELLOW }, { LogLevel::level::ERROR, RED },
     { LogLevel::level::WERN, MAGENTA }, { LogLevel::level::DOTKNOW, CYAN },
-    { LogLevel::level::INFO, WHITE },   { LogLevel::level::FATAL, BOLDRED }
+    { LogLevel::level::INFO, BOLDWHITE },   { LogLevel::level::FATAL, BOLDRED }
 };
 
 /*

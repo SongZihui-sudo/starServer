@@ -3,9 +3,9 @@
 
 #include "./JsonSerial.h"
 
+#include <iostream>
 #include <memory>
 #include <string>
-#include <iostream>
 
 namespace star
 {
@@ -23,6 +23,7 @@ public:
         std::vector< std::string > path; /* 路径 */
         size_t file_size;                /* 大小 */
         std::vector< std::string > data; /* 文件内容 */
+        std::vector< void* > customize; /* 自定义内容，内容只可以是原始类型 */
     };
 
 public:
@@ -41,9 +42,23 @@ public:
 #define XX( name )                                                                         \
     serialize( js, name.bit, name.from, name.file_name, name.path, name.file_size, name.data );
         /* 把结构体转成 json */
-        XX( this->m_protocol );
+        if ( this->m_protocol.customize.empty() )
+        {
+            XX( this->m_protocol );
+        }
 
 #undef XX
+        else
+        {
+            serialize( js,
+                       this->m_protocol.bit,
+                       this->m_protocol.from,
+                       this->m_protocol.file_name,
+                       this->m_protocol.path,
+                       this->m_protocol.file_size,
+                       this->m_protocol.data,
+                       this->m_protocol.customize );
+        }
     }
 
     /* 反序列化 */
@@ -52,9 +67,23 @@ public:
 #define XX( name )                                                                         \
     deserialize( js, name.bit, name.from, name.file_name, name.path, name.file_size, name.data );
         /* 把结构体转成 json */
-        XX( this->m_protocol );
+        if ( !this->js->get().isMember( "customize" ) )
+        {
+            XX( this->m_protocol );
+        }
 
 #undef XX
+        else
+        {
+            deserialize( js,
+                         this->m_protocol.bit,
+                         this->m_protocol.from,
+                         this->m_protocol.file_name,
+                         this->m_protocol.path,
+                         this->m_protocol.file_size,
+                         this->m_protocol.data,
+                         this->m_protocol.customize );
+        }
     }
 
     /* 把 json 转换成 string */
@@ -66,11 +95,11 @@ public:
     }
 
     /* 转换成C风格字符串 */
-    void toCStr( char*& str )
+    void toCStr( const char*& str )
     {
         Json::FastWriter styled_writer;
         std::string s = styled_writer.write( js->get() );
-        strcpy( str, s.c_str() );
+        str = s.c_str();
     }
 
     /* 字符串 转 json */
@@ -94,6 +123,8 @@ public:
             std::cout << js->get()[*iter];
         }
     }
+
+    void set_protocol_struct( Protocol_Struct in_struct ) { this->m_protocol = in_struct; }
 
 private:
     Protocol_Struct m_protocol; /* 协议 */
