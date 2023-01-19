@@ -8,4 +8,5 @@ build/
 #vscode coche
 .vscode/.clangd/*
 
-
+chunk_server_settings.json
+master_server_settings.json

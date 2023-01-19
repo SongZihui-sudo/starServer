@@ -82,6 +82,7 @@ protected:
             {
                 ret.data.push_back( this->chunk_list[i].from );
                 ret.customize.push_back( ( int* )this->chunk_list[i].index );
+                ret.customize.push_back( ( std::string* )this->chunk_list[i].from.c_str() );
             }
 
             return ret;
@@ -136,13 +137,13 @@ protected:
 private:
     Status m_status;                                       /* 服务器状态 */
     config::ptr m_settings;                                /* 服务器设置 */
-    levelDB::ptr m_db;                                     /* 服务器数据库 */
     std::string m_name;                                    /* 服务器名 */
     Logger::ptr m_logger;                                  /* 日志器 */
     MSocket::ptr m_sock;                                   /* socket */
     protocol::ptr m_protocol;                              /* 协议序列化 */
     size_t max_chunk_size;                                 /* chunk 的最大大小  */
     std::map< std::string, file_meta_data > meta_data_tab; /* 元数据表 */
+    levelDB::ptr m_db;                                     /* 服务器数据库 */
 };
 }
 

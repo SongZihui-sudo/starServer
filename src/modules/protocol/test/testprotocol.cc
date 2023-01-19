@@ -22,7 +22,7 @@ int main()
     test->Serialize();
     
     std::cout << test->toStr() << std::endl;
-    char* temp = new char[100];
+    const char* temp = new char[100];
     test->toCStr(temp);
     std::cout << temp << std::endl;
     test->toJson(temp);

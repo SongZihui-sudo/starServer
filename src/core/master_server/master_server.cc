@@ -212,7 +212,7 @@ void master_server::respond()
     int temp4 = 0;
     std::map< std::string, file_meta_data > temp5;
     std::string temp6 = "";
-    int temp8 = 0;
+    int temp8         = 0;
 
     /* 判断，请求内容 */
     switch ( current_procotol.bit )
@@ -226,6 +226,8 @@ void master_server::respond()
         /* 标识为101，向客户端回复文件元数据 */
         case 101:
             temp2 = current_procotol.file_name;
+            temp6 = current_procotol.path[0];
+            temp2 += temp6;
             /* 查到文件的元数据 */
             self->find_file_meta_data( temp1, temp2 );
             /* 再把文件的元数据转换为协议结构体，发回去 */
@@ -251,12 +253,12 @@ void master_server::respond()
                 temp4          = *( int* )current_procotol.customize[i];
                 c_chunk.index  = temp4;
                 temp3          = ( std::string* )current_procotol.customize[i + 1];
-                c_chunk.f_name = temp3->c_str();
-                self->meta_data_tab[temp3->c_str()].f_name = temp3->c_str();
-                self->meta_data_tab[temp3->c_str()].num_chunk++;
+                c_chunk.f_name = temp3->c_str() + c_chunk.f_path;
+                self->meta_data_tab[c_chunk.f_name].f_name = temp3->c_str();
+                self->meta_data_tab[c_chunk.f_name].num_chunk++;
                 temp4 = *( int* )current_procotol.customize[i + 2];
-                self->meta_data_tab[temp3->c_str()].f_size += temp4;
-                self->meta_data_tab[temp3->c_str()].chunk_list.push_back( c_chunk );
+                self->meta_data_tab[c_chunk.f_name].f_size += temp4;
+                self->meta_data_tab[c_chunk.f_name].chunk_list.push_back( c_chunk );
             }
             break;
         /* 标识为4，关闭服务器 */
@@ -282,15 +284,29 @@ void master_server::respond()
             {
                 /* 协议 */
                 current_procotol.bit = 1;
-                current_procotol.data.push_back(item.second.chunk_list[temp8].data) ;
+                current_procotol.data.push_back( item.second.chunk_list[temp8].data );
                 current_procotol.file_name = item.first;
-                current_procotol.from = self->m_sock->getLocalAddress()->toString();
-                current_procotol.path.push_back(item.second.chunk_list[0].f_path);
-                current_procotol.file_size = item.second.f_size; 
+                current_procotol.from      = self->m_sock->getLocalAddress()->toString();
+                current_procotol.path.push_back( item.second.chunk_list[0].f_path );
+                current_procotol.file_size = item.second.f_size;
                 /* 发送 */
                 XX();
                 temp8++;
             }
+            break;
+        /* 向客户端发送全部的文件信息 */
+        case 106:
+            current_procotol.from      = self->m_sock->toString();
+            current_procotol.from      = 107;
+            current_procotol.file_size = 0;
+            for ( auto item : self->meta_data_tab )
+            {
+                /* 再把文件的元数据转换为协议结构体，发回去 */
+                current_procotol.file_name += item.first + "%|";
+                current_procotol.path.push_back( item.second.chunk_list[0].f_path );
+                current_procotol.file_size += 1;
+            }
+            XX();
             break;
         default:
             ERROR_STD_STREAM_LOG( self->m_logger ) << "Unknown server instruction！"

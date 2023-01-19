@@ -174,26 +174,7 @@ void chunk_server::respond()
             current_procotol.file_name = c_chunk.f_name;
             current_procotol.from      = self->m_sock->getLocalAddress()->toString();
             temp                       = c_chunk.f_path.c_str();
-
-            /* 分割路径字符串 */
-            while ( *temp )
-            {
-                if ( *temp == '/' )
-                {
-                    current_procotol.path.push_back( temp2 );
-                    temp2.clear();
-                }
-                else
-                {
-                    temp2.push_back( *temp );
-                    temp++;
-                }
-            }
-            if ( !temp2.empty() )
-            {
-                current_procotol.path.push_back( temp2 );
-                temp2.clear();
-            }
+            current_procotol.path.push_back(temp);
 
             YY();
             break;
