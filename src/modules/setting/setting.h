@@ -117,9 +117,6 @@ private:
     LogManager m_manager;                                /* 日志管理器 */
 };
 
-/* 全局设置 */
-static config::ptr globeConfig(new config("./globeSettings.json"));
-
 };
 
 #endif

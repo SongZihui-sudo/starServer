@@ -19,5 +19,10 @@ int main()
         thread_pool.push_back(test);
     }
 
+    for (size_t i = 0; i < thread_pool.size(); i++) 
+    {
+        thread_pool[i]->join();
+    }
+
     return 0;
 }

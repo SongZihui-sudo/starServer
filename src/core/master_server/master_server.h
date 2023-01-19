@@ -1,6 +1,7 @@
 #ifndef MASTER_SERVER_H
 #define MASTER_SERVER_H
 
+#include <cstdint>
 #include <star.h>
 
 #include <map>
@@ -89,6 +90,12 @@ protected:
         }
     };
 
+    struct chunk_server_info
+    {
+        std::string addr;
+        std::int64_t port;
+    };
+
 public:
     typedef std::shared_ptr< master_server > ptr;
 
@@ -144,6 +151,7 @@ private:
     size_t max_chunk_size;                                 /* chunk 的最大大小  */
     std::map< std::string, file_meta_data > meta_data_tab; /* 元数据表 */
     levelDB::ptr m_db;                                     /* 服务器数据库 */
+    std::vector< chunk_server_info > chunk_server_list;    /* chunk server 信息 */
 };
 }
 

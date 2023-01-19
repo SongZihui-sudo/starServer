@@ -1,6 +1,7 @@
 add_rules("mode.debug", "mode.release")
 
 add_defines("Database")
+
 add_packages("leveldb")     -- 使用 leveldb 库
 
 target("database")

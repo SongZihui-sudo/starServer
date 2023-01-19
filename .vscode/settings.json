@@ -6,9 +6,38 @@
         "-std=c++20",
         // 增加项目自身头文件依赖路劲，因为使用vs2019编译不会生成compile_command.json文件，项目自己的头文件就不会找到
         "-I${workspaceFolder}", // 项目根目录
-        "-I/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", // jsoncpp 库
-        "-I/home/ubuntu/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include",   // Leveldb 数据库
-        "-I/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include",   // libaco 库 
+        //"-I/home/ubuntu/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", // jsoncpp 库
+        //"-I/home/ubuntu/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include",   // Leveldb 数据库
+        //"-I/home/ubuntu/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include",   // libaco 库
+        "-I/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", // jsoncpp 库
+        "-I/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", // leveldb 库
+        "-I/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", // libaco 库
+        "-I/home/song/.xmake/packages/s/sqlite3/3.39.0+200/5d11e4a4fb2b4009b1c06786f9f16b51/include", // sqlite3 库
         "-I${workspaceFolder}/src/", // star.h
-    ]
+    ],
+    "xmake.customDebugConfig": {
+        "stopAtEntry": false,
+        "setupCommands": [
+            {
+                "description": "为 gdb 启用整齐打印",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            },
+            {
+                "description": "将反汇编风格设置为 Intel",
+                "text": "-gdb-set disassembly-flavor intel",
+                "ignoreFailures": true
+            },
+            {
+                "description": "只调试子进程",
+                "text": "set follow-fork-mode child",
+                "ignoreFailures": true
+            },
+            {
+                "description": "只调试子进程",
+                "text": "set detach-on-fork on",
+                "ignoreFailures": true
+            },
+        ]
+    }
 }

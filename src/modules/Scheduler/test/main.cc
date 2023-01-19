@@ -47,7 +47,7 @@ int main()
     test->run();
 
     int i = 0;
-    MESSAGE_MAP( arg_map, 13 );
+    MESSAGE_MAP( arg_map, 14 );
 
     insert_message( arg_map, 0, 4 );
     insert_message( arg_map, 1, 1, std::function< void() >( task1 ), "task1" );
@@ -68,7 +68,7 @@ int main()
 
     insert_message( arg_map, 13, 2, "task5" );
 
-    insert_message( arg_map, 12, 5 );
+    insert_message( arg_map, 14, 5 );
 
     if ( star::Schedule_args.empty() )
     {

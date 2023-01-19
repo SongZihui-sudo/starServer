@@ -1,6 +1,6 @@
 #include "../master_server.h"
 /* 服务器对象 */
-star::master_server::ptr cs( new star::master_server() );
+star::master_server::ptr cs;
 
 void run() { cs->wait(); }
 
@@ -9,11 +9,10 @@ void run() { cs->wait(); }
  */
 int main()
 {
-
+    cs.reset( new star::master_server() );
     /* 新建一个线程，等待连接 */
-    star::Threading::ptr new_thread( new star::Threading( run, "Server Thread" ) );
-
-    new_thread->join();
+    
+    run();
 
     return 0;
 }

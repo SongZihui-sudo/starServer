@@ -1,4 +1,8 @@
 #include "./master_server.h"
+#include "modules/socket/address.h"
+#include "json/value.h"
+#include <cstring>
+#include <exception>
 
 namespace star
 {
@@ -14,35 +18,58 @@ master_server::master_server()
 
     /* 配置服务器 */
     this->m_status = INIT;
-
-    std::string db_path = Settings->get( "DBpath" ).asString();
-    std::string db_name = Settings->get( "DBname" ).asString();
-    this->m_db.reset( new star::levelDB( db_name, db_path ) ); /* 初始化数据库 */
-
-    this->m_name = Settings->get( "ServerName" ).asString();
-
-    this->m_logger.reset( STAR_NAME( "MASTER_SERVER_LOGGER" ) );
-
-    const char* addr = Settings->get( "IPAddress" ).asCString();
-    int port         = Settings->get( "Port" ).asInt();
-    this->m_sock     = MSocket::CreateTCPSocket(); /* 创建一个TCP Socket */
-
-    if ( Settings->get( "AddressType" ).asString() == "IPv4" )
+    try
     {
-        IPv4Address::ptr temp( new IPv4Address() );
-        this->m_sock->bind( temp ); /* 绑定地址 */
+        std::string db_path = Settings->get( "DBpath" ).asString();
+        std::string db_name = Settings->get( "DBname" ).asString();
+        this->m_db.reset( new star::levelDB( db_name, db_path ) ); /* 初始化数据库 */
+
+        this->m_name = Settings->get( "ServerName" ).asString();
+
+        this->m_logger.reset( STAR_NAME( "MASTER_SERVER_LOGGER" ) );
+
+        const char* addr = new char[100];
+        strcpy( const_cast< char* >( addr ), Settings->get( "master_server" )["address"].asCString() );
+
+        int port     = Settings->get( "master_server" )["port"].asInt();
+        this->m_sock = MSocket::CreateTCPSocket(); /* 创建一个TCP Socket */
+
+        if ( Settings->get( "AddressType" ).asString() == "IPv4" )
+        {
+            IPv4Address::ptr temp( new IPv4Address() );
+            temp = IPv4Address::Create(addr, port);
+            this->m_sock->bind( temp ); /* 绑定地址 */
+        }
+        else if ( Settings->get( "AddressType" ).asString() == "IPv6" )
+        {
+            IPv6Address::ptr temp( new IPv6Address() );
+            temp = IPv6Address::Create(addr, port);
+            this->m_sock->bind( temp ); /* 绑定地址 */
+        }
+        else
+        {
+            ERROR_STD_STREAM_LOG( this->m_logger ) << "Unknown address type！"
+                                                   << "%n%0";
+            return;
+        }
+        /* 读取chunk server 的信息 */
+        Json::Value servers = this->m_settings->get("chunk_server");
+        for (int i = 0; i < servers.size(); i++) 
+        {
+            chunk_server_info cur;
+            cur.addr = servers[i]["address"].asString();
+            cur.port = servers[i]["port"].asInt64();
+            this->chunk_server_list.push_back(cur);
+        }
+
+        /* 释放内存 */
+        delete [] addr;
     }
-    else if ( Settings->get( "AddressType" ).asString() == "IPv6" )
+    catch(std::exception e)
     {
-        IPv6Address::ptr temp( new IPv6Address() );
-        this->m_sock->bind( temp ); /* 绑定地址 */
-    }
-    else
-    {
-        ERROR_STD_STREAM_LOG( this->m_logger ) << "Unknown address type！"
-                                               << "%n%0";
-        return;
-    }
+        ERROR_STD_STREAM_LOG( this->m_logger ) << "what: " << e.what() << "%n%0";
+        throw e;
+    };
 }
 
 void master_server::wait()
@@ -234,17 +261,8 @@ void master_server::respond()
             current_procotol = temp1.toProrocol();
             XX()
             break;
-        /* 标识为102，向客户端回复指定块的元数据 */
-        case 102:
-            temp2 = current_procotol.file_name;
-            temp4 = *( int* )current_procotol.customize[0];
-            self->find_chunk_meta_data( temp2, temp4, c_chunk );
-            /* 把块元数据转换为协议结构体 */
-            current_procotol = temp1.toProrocol();
-            XX()
-            break;
         /* 标识为3，接受 chunk server 发过来的块元数据信息 */
-        case 103:
+        case 102:
             temp4 = current_procotol.data.size();
             for ( size_t i = 0; i < temp4; i++ )
             {
@@ -262,11 +280,11 @@ void master_server::respond()
             }
             break;
         /* 标识为4，关闭服务器 */
-        case 104:
+        case 103:
             self->close();
             break;
         /* 标识为5，用户上传数据 */
-        case 105:
+        case 104:
             /* 根据用户上传的文件数据，划分块，然后在分发给chunk server */
             for ( size_t i = 0; i < current_procotol.data.size(); i++ )
             {
@@ -294,8 +312,8 @@ void master_server::respond()
                 temp8++;
             }
             break;
-        /* 向客户端发送全部的文件信息 */
-        case 106:
+        /* 把系统已经存储的文件名及其路径发给客户端 */
+        case 105:
             current_procotol.from      = self->m_sock->toString();
             current_procotol.from      = 107;
             current_procotol.file_size = 0;

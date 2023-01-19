@@ -3,8 +3,6 @@
 
 #include <memory>
 #include <netinet/tcp.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <iostream>

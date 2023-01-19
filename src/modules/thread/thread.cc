@@ -24,6 +24,8 @@ Threading::Threading( std::function< void() > func, const std::string& name )
         m_name = "UNKNOW";
     }
 
+    this->t_logger.reset(STAR_NAME("THREAD_LOGGER"));
+
     m_status = INIT;
 
     int rt = pthread_create( &m_thread, nullptr, &Threading::run, this );
@@ -84,7 +86,7 @@ void* Threading::run( void* arg )
     thread->m_status  = FREE;
     sem_post( &thread->m_sem );
 
-    return 0;
+    return nullptr;
 }
 
 void Threading::reset( std::function< void() > func )

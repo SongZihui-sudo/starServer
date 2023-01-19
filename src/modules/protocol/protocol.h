@@ -3,6 +3,7 @@
 
 #include "./JsonSerial.h"
 
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -99,7 +100,7 @@ public:
     {
         Json::FastWriter styled_writer;
         std::string s = styled_writer.write( js->get() );
-        str = s.c_str();
+        strcpy(const_cast<char*>(str), s.c_str());  /* 拷贝字符串 */
     }
 
     /* 字符串 转 json */

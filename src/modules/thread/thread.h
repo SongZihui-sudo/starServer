@@ -41,7 +41,7 @@ public:
 
     ~Threading()
     {
-        if ( m_thread )
+        if ( this->m_status == RUNING )
         {
             pthread_detach( m_thread );
         }
@@ -101,7 +101,7 @@ private:
     Thread_Status m_status;              /* 线程状态 */
     pid_t m_id;                   /* 线程id */
     std::string m_name;           /* 线程名 */
-    pthread_t m_thread = 0;       /* 线程 */
+    pthread_t m_thread;       /* 线程 */
     std::function< void() > func; /* 线程执行函数 */
     sem_t m_sem;                  /* 信号量 */
     star::Logger::ptr t_logger;   /* 日志器 */
