@@ -11,7 +11,7 @@
 
 /* 插入消息 */
 template< typename T1, typename... Ts >
-void insert_message( std::vector< std::vector< void* > >& obj, int index, T1 arg1, Ts... arg_left )
+void Register( std::vector< std::vector< void* > >& obj, int index, T1 arg1, Ts... arg_left )
 {
 
     T1* temp = new T1;
@@ -20,7 +20,7 @@ void insert_message( std::vector< std::vector< void* > >& obj, int index, T1 arg
 
     if constexpr ( sizeof...( arg_left ) > 0 )
     {
-        insert_message( obj, index, arg_left... );
+        Register( obj, index, arg_left... );
     }
 }
 

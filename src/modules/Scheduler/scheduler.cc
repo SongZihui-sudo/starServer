@@ -204,6 +204,7 @@ void Scheduler::start()
             sleep( 1 );
         }
     }
+    return;
 }
 
 void Scheduler::run()

@@ -1,6 +1,7 @@
 #ifndef MASTER_SERVER_H
 #define MASTER_SERVER_H
 
+#include "modules/log/log.h"
 #include <cstdint>
 #include <star.h>
 
@@ -28,66 +29,6 @@ protected:
         COMMAND_ERROR = 5,
         PARSING_ERROR = 6,
         INIT          = 7
-    };
-    /*
-        块元数据
-     */
-    struct chunk_meta_data
-    {
-        std::string f_name; /* 文件名 */
-        size_t index;       /* 索引 */
-        const char* data;   /* 数据 */
-        std::string f_path; /* 文件路径 */
-        size_t chunk_size;  /* chunk 大小 */
-        std::string from;   /* 所在的 chunk server */
-        int port;           /* chunk server 端口 */
-
-        chunk_meta_data( std::string f_name,
-                         size_t index,
-                         const char* data,
-                         std::string path,
-                         size_t chunk_size,
-                         std::string from,
-                         int port )
-        {
-            this->f_name     = f_name;
-            this->index      = index;
-            this->data       = data;
-            this->f_path     = path;
-            this->chunk_size = chunk_size;
-            this->from       = from;
-            this->port       = port;
-        }
-
-        chunk_meta_data() {}
-    };
-
-    /* 文件元数据 */
-    struct file_meta_data
-    {
-        std::string f_name;                        /* 文件名 */
-        std::vector< chunk_meta_data > chunk_list; /* 文件列表 */
-        size_t f_size;                             /* 文件大小 */
-        size_t num_chunk;                          /* 文件块数 */
-
-        protocol::Protocol_Struct toProrocol()
-        {
-            protocol::Protocol_Struct ret;
-
-            /* 把元数据转换成为协议结构体 */
-            ret.file_name = this->f_name;
-            ret.file_size = this->f_size;
-            ret.bit       = 1;
-            ret.path.push_back( this->chunk_list[0].f_path );
-            for ( size_t i = 0; i < this->chunk_list.size(); i++ )
-            {
-                ret.data.push_back( this->chunk_list[i].from );
-                ret.customize.push_back( ( int* )this->chunk_list[i].index );
-                ret.customize.push_back( ( std::string* )this->chunk_list[i].from.c_str() );
-            }
-
-            return ret;
-        }
     };
 
     struct chunk_server_info
@@ -140,6 +81,19 @@ protected:
 
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );
+
+    /* 打印一个字符画 */
+    void print_logo()
+    {
+        DOTKNOW_STD_STREAM_LOG( this->m_logger )
+        << "\n  ____    _                    _____       \n"
+        << " / ___|  | |_    __ _   _ __  |  ___|  ___ \n"
+        << " \\___ \\  | __|  / _` | | '__| | |_    / __|\n"
+        << "  ___) | | |_  | (_| | | |    |  _|   \\__ \\\n"
+        << " |____/   \\__|  \\__,_| |_|    |_|     |___/\n"
+        << "                            ----> Master Server Exploded version"
+        << "%n%0";
+    }
 
 private:
     Status m_status;                                       /* 服务器状态 */

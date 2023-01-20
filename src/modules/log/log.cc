@@ -82,7 +82,7 @@ void StdLogAppender::log( LogLevel::level in_level, LogEvent::ptr in_event )
     /*
         在控制台输出
     */
-    if ( in_level > this->m_level )
+    if ( in_level >= this->m_level )
     {
         switch ( in_level )
         {
@@ -111,7 +111,7 @@ void FileLogAppender::log( LogLevel::level in_level, LogEvent::ptr in_event )
     /*
         输出到文件里
     */
-    if ( in_level > this->m_level )
+    if ( in_level >= this->m_level )
     {
         std::string str = "";
         switch ( in_level )

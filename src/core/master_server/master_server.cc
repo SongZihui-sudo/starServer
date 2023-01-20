@@ -1,14 +1,18 @@
 #include "./master_server.h"
+#include "modules/log/log.h"
 #include "modules/socket/address.h"
+#include "modules/socket/socket.h"
 #include "json/value.h"
 #include <cstring>
 #include <exception>
+#include <string>
 
 namespace star
 {
 static Scheduler::ptr master_server_scheduler; /* 调度器 */
 static Threading::ptr master_server_thread;    /* 服务器线程 */
 void* c_args;
+static thread_local MSocket::ptr remote_sock = nullptr;
 
 master_server::master_server()
 {
@@ -37,13 +41,13 @@ master_server::master_server()
         if ( Settings->get( "AddressType" ).asString() == "IPv4" )
         {
             IPv4Address::ptr temp( new IPv4Address() );
-            temp = IPv4Address::Create(addr, port);
+            temp = IPv4Address::Create( addr, port );
             this->m_sock->bind( temp ); /* 绑定地址 */
         }
         else if ( Settings->get( "AddressType" ).asString() == "IPv6" )
         {
             IPv6Address::ptr temp( new IPv6Address() );
-            temp = IPv6Address::Create(addr, port);
+            temp = IPv6Address::Create( addr, port );
             this->m_sock->bind( temp ); /* 绑定地址 */
         }
         else
@@ -53,19 +57,19 @@ master_server::master_server()
             return;
         }
         /* 读取chunk server 的信息 */
-        Json::Value servers = this->m_settings->get("chunk_server");
-        for (int i = 0; i < servers.size(); i++) 
+        Json::Value servers = this->m_settings->get( "chunk_server" );
+        for ( int i = 0; i < servers.size(); i++ )
         {
             chunk_server_info cur;
             cur.addr = servers[i]["address"].asString();
             cur.port = servers[i]["port"].asInt64();
-            this->chunk_server_list.push_back(cur);
+            this->chunk_server_list.push_back( cur );
         }
 
         /* 释放内存 */
-        delete [] addr;
+        delete[] addr;
     }
-    catch(std::exception e)
+    catch ( std::exception e )
     {
         ERROR_STD_STREAM_LOG( this->m_logger ) << "what: " << e.what() << "%n%0";
         throw e;
@@ -74,57 +78,70 @@ master_server::master_server()
 
 void master_server::wait()
 {
+    this->print_logo();
     /* 运行调度器 */
     master_server_scheduler.reset( new Scheduler( 10, 10 ) );
     master_server_scheduler->run(); /* 等待进行任务调度 */
     /* 监听 socket 连接 */
     this->m_status = Normal;
-    MESSAGE_MAP( SOCKET_CONNECTS, 10 );
+
     /* 设置 this 指针 */
     c_args = this;
     /* 新建一个线程进行等待*/
     int index = 0;
     int i     = 0;
+    this->m_sock->listen();
+
     /* 阻塞线程，进行等待 */
+    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <-----> "
+                                          << "Master Server Start Listening!"
+                                          << "%n%0";
+    
     while ( true )
     {
-        if ( this->m_sock->listen() )
+        remote_sock = this->m_sock->accept();
+        if ( remote_sock )
         {
+            MESSAGE_MAP( SOCKET_CONNECTS, 10 );
+            INFO_STD_STREAM_LOG( this->m_logger )
+            << std::to_string( getTime() ) << " <-----> "
+            << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString() << "%n%0";
+            Register( SOCKET_CONNECTS, index, 1, respond, "respond" + std::to_string( index ) ); /* 注册一个任务 */
             index++;
-            insert_message( SOCKET_CONNECTS, index, 1, respond, "respond" + std::to_string( index ) ); /* 注册一个任务 */
-            insert_message( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
+            Register( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
+
             if ( star::Schedule_args.empty() )
             {
                 /* 取指令 */
                 star::Schedule_args = SOCKET_CONNECTS[i];
                 i++;
             }
-            else if ( star::Schedule_answer == 1 )
+
+            while ( !SOCKET_CONNECTS[i].empty() )
             {
-                /* 取指令 */
-                star::Schedule_args.clear();
-                star::Schedule_args   = SOCKET_CONNECTS[i];
-                star::Schedule_answer = 0;
-                i++;
+                if ( star::Schedule_answer == 1 )
+                {
+                    /* 取指令 */
+                    star::Schedule_args.clear();
+                    star::Schedule_args   = SOCKET_CONNECTS[i];
+                    star::Schedule_answer = 0;
+                    i++;
+                }
+                else if ( star::Schedule_answer == 2 )
+                {
+                    FATAL_STD_STREAM_LOG( this->m_logger ) << "Server exit！"
+                                                           << "%n%0";
+                    star::Schedule_answer = 0;
+                    return;
+                }
+                else
+                {
+                    this->m_status = COMMAND_ERROR;
+                    WERN_STD_STREAM_LOG( this->m_logger ) << "Bad server flag！"
+                                                          << "%n%0";
+                }
             }
-            else if ( star::Schedule_answer == 2 )
-            {
-                FATAL_STD_STREAM_LOG( this->m_logger ) << "Server exit！"
-                                                       << "%n%0";
-                star::Schedule_answer = 0;
-                return;
-            }
-            else
-            {
-                this->m_status = COMMAND_ERROR;
-                WERN_STD_STREAM_LOG( this->m_logger ) << "Bad server flag！"
-                                                      << "%n%0";
-            }
-        }
-        else
-        {
-            /* 休眠 1s */
-            sleep( 1 );
+            index++;
         }
     }
 }
@@ -215,13 +232,20 @@ void master_server::respond()
     /* 获取this指针 */
     master_server* self = ( master_server* )c_args;
 
+    if ( !remote_sock )
+    {
+        FATAL_STD_STREAM_LOG( self->m_logger ) << "The connection has not been established."
+                                               << "%n%0";
+        return;
+    }
+
     self->m_status = Normal;
 
     /* 缓冲区 */
     int length   = self->m_settings->get( "BufferSize" ).asInt();
     char* buffer = new char[length];
     /* 接受信息 */
-    self->m_sock->recv( buffer, length, 0 );
+    remote_sock->recv( buffer, length, 0 );
 
     /* 解析字符串 */
     star::protocol::Protocol_Struct current_procotol; /* 初始化协议结构体 */
@@ -230,16 +254,6 @@ void master_server::respond()
     self->m_protocol->Deserialize();    /* 反序列化json成结构体 */
 
     /* switch 中用到的变量 */
-    chunk_meta_data c_chunk;
-    const char* temp  = "";
-    std::string temp2 = "";
-    std::vector< chunk_meta_data > temp_arr;
-    std::string* temp3 = new std::string;
-    file_meta_data temp1;
-    int temp4 = 0;
-    std::map< std::string, file_meta_data > temp5;
-    std::string temp6 = "";
-    int temp8         = 0;
 
     /* 判断，请求内容 */
     switch ( current_procotol.bit )
@@ -252,79 +266,6 @@ void master_server::respond()
 
         /* 标识为101，向客户端回复文件元数据 */
         case 101:
-            temp2 = current_procotol.file_name;
-            temp6 = current_procotol.path[0];
-            temp2 += temp6;
-            /* 查到文件的元数据 */
-            self->find_file_meta_data( temp1, temp2 );
-            /* 再把文件的元数据转换为协议结构体，发回去 */
-            current_procotol = temp1.toProrocol();
-            XX()
-            break;
-        /* 标识为3，接受 chunk server 发过来的块元数据信息 */
-        case 102:
-            temp4 = current_procotol.data.size();
-            for ( size_t i = 0; i < temp4; i++ )
-            {
-                c_chunk.f_path = current_procotol.path[i].c_str();
-                c_chunk.data   = current_procotol.data[i].c_str();
-                temp4          = *( int* )current_procotol.customize[i];
-                c_chunk.index  = temp4;
-                temp3          = ( std::string* )current_procotol.customize[i + 1];
-                c_chunk.f_name = temp3->c_str() + c_chunk.f_path;
-                self->meta_data_tab[c_chunk.f_name].f_name = temp3->c_str();
-                self->meta_data_tab[c_chunk.f_name].num_chunk++;
-                temp4 = *( int* )current_procotol.customize[i + 2];
-                self->meta_data_tab[c_chunk.f_name].f_size += temp4;
-                self->meta_data_tab[c_chunk.f_name].chunk_list.push_back( c_chunk );
-            }
-            break;
-        /* 标识为4，关闭服务器 */
-        case 103:
-            self->close();
-            break;
-        /* 标识为5，用户上传数据 */
-        case 104:
-            /* 根据用户上传的文件数据，划分块，然后在分发给chunk server */
-            for ( size_t i = 0; i < current_procotol.data.size(); i++ )
-            {
-                temp2 += current_procotol.data[i];
-            }
-
-            for ( size_t i = 0; i < current_procotol.data.size(); i++ )
-            {
-                temp6 += current_procotol.path[i];
-            }
-            self->Split_file( current_procotol.file_name, temp2.c_str(), temp6, temp5 );
-            /* 向 chunk server 分发块*/
-            temp8 = 0;
-            for ( auto item : temp5 )
-            {
-                /* 协议 */
-                current_procotol.bit = 1;
-                current_procotol.data.push_back( item.second.chunk_list[temp8].data );
-                current_procotol.file_name = item.first;
-                current_procotol.from      = self->m_sock->getLocalAddress()->toString();
-                current_procotol.path.push_back( item.second.chunk_list[0].f_path );
-                current_procotol.file_size = item.second.f_size;
-                /* 发送 */
-                XX();
-                temp8++;
-            }
-            break;
-        /* 把系统已经存储的文件名及其路径发给客户端 */
-        case 105:
-            current_procotol.from      = self->m_sock->toString();
-            current_procotol.from      = 107;
-            current_procotol.file_size = 0;
-            for ( auto item : self->meta_data_tab )
-            {
-                /* 再把文件的元数据转换为协议结构体，发回去 */
-                current_procotol.file_name += item.first + "%|";
-                current_procotol.path.push_back( item.second.chunk_list[0].f_path );
-                current_procotol.file_size += 1;
-            }
-            XX();
             break;
         default:
             ERROR_STD_STREAM_LOG( self->m_logger ) << "Unknown server instruction！"

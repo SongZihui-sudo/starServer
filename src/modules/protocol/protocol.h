@@ -22,8 +22,8 @@ public:
         std::string from;                /* 请求者ip */
         std::string file_name;           /* 文件名 */
         std::vector< std::string > path; /* 路径 */
-        size_t file_size;                /* 大小 */
-        std::vector< std::string > data; /* 文件内容 */
+        size_t package_size;                     /* 大小 */
+        std::string data; /* 文件内容 */
         std::vector< void* > customize; /* 自定义内容，内容只可以是原始类型 */
     };
 
@@ -41,7 +41,7 @@ public:
     void Serialize()
     {
 #define XX( name )                                                                         \
-    serialize( js, name.bit, name.from, name.file_name, name.path, name.file_size, name.data );
+    serialize( js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data );
         /* 把结构体转成 json */
         if ( this->m_protocol.customize.empty() )
         {
@@ -56,7 +56,7 @@ public:
                        this->m_protocol.from,
                        this->m_protocol.file_name,
                        this->m_protocol.path,
-                       this->m_protocol.file_size,
+                       this->m_protocol.package_size,
                        this->m_protocol.data,
                        this->m_protocol.customize );
         }
@@ -66,7 +66,7 @@ public:
     void Deserialize()
     {
 #define XX( name )                                                                         \
-    deserialize( js, name.bit, name.from, name.file_name, name.path, name.file_size, name.data );
+    deserialize( js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data );
         /* 把结构体转成 json */
         if ( !this->js->get().isMember( "customize" ) )
         {
@@ -81,7 +81,7 @@ public:
                          this->m_protocol.from,
                          this->m_protocol.file_name,
                          this->m_protocol.path,
-                         this->m_protocol.file_size,
+                         this->m_protocol.package_size,
                          this->m_protocol.data,
                          this->m_protocol.customize );
         }
@@ -100,7 +100,7 @@ public:
     {
         Json::FastWriter styled_writer;
         std::string s = styled_writer.write( js->get() );
-        strcpy(const_cast<char*>(str), s.c_str());  /* 拷贝字符串 */
+        strcpy( const_cast< char* >( str ), s.c_str() ); /* 拷贝字符串 */
     }
 
     /* 字符串 转 json */

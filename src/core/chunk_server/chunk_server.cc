@@ -58,8 +58,8 @@ void chunk_server::wait()
         if ( this->m_sock->listen() )
         {
             index++;
-            insert_message( SOCKET_CONNECTS, index, 1, respond, "respond" + std::to_string( index ) ); /* 注册一个任务 */
-            insert_message( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
+            Register( SOCKET_CONNECTS, index, 1, respond, "respond" + std::to_string( index ) ); /* 注册一个任务 */
+            Register( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
             if ( star::Schedule_args.empty() )
             {
                 /* 取指令 */

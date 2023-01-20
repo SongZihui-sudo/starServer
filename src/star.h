@@ -25,4 +25,6 @@
 
 #include <aco.h>
 
+#include "./modules/meta_data/meta_data.h"
+
 #endif
