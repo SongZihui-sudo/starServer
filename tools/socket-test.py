@@ -63,17 +63,18 @@ def main():
 
     if mode == 1:
         addr: str = str(input("输入服务器地址："))
-        port: int = int(input("输入服务器端口"))
+        port: int = int(input("输入服务器端口："))
         client = MSocket(mode, addr, port)
         client.connect()
-        buf: str = str(input("输入要发送的内容：(输入 End 为结束)"))
+        buf: str = str(input("输入要发送的内容：(输入 End 为结束)："))
         while buf != "End":
             client.send(buf)
-            buf: str = str(input("输入要发送的内容：(输入 End 为结束)"))
+            buf: str = str(input("输入要发送的内容：(输入 End 为结束)："))
+        client.send("End")
 
     elif mode == 2:
         addr: str = str(input("输入服务器地址："))
-        port: int = int(input("输入服务器端口"))
+        port: int = int(input("输入服务器端口："))
         server = MSocket(mode, addr, port)
         print("socket server start!")
         server.server_run()

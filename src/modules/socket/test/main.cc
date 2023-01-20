@@ -2,8 +2,10 @@
 #include "../../log/log.h"
 #include "../socket.h"
 #include "modules/socket/address.h"
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <sys/socket.h>
 #include <unistd.h>
 
 star::Logger::ptr g_logger( STAR_NAME( "system" ) );
@@ -129,29 +131,37 @@ void test3()
     };
     DEBUG_STD_STREAM_LOG( g_logger )
     << "server Start listening !" << m_socket->getLocalAddress()->toString() << "%n%0";
-    m_socket->accept();
-    const char* buffer = new char[100];
+    star::MSocket::ptr client_addr = nullptr;
 
+    client_addr = m_socket->accept();
+
+    /* 阻塞当前的线程 */
     while ( true )
     {
-        buffer = "None";
-        m_socket->recv( const_cast< char* >( buffer ), 100, 0 ); /* 接受消息 */
+        char* buffer = new char[1024];
 
-        if ( strcmp( buffer, "None" ) )
+        client_addr->recv( buffer, 1024 ); /* 接受消息 */
+
+        std::string cur = buffer;
+
+        INFO_STD_STREAM_LOG( g_logger )
+        << "Get Message"
+        << "%n"
+        << "Form:" << m_socket->getRemoteAddress()->toString() << "Msg:" << cur << "%n%0";
+
+        /* 当消息为end的时候，停止监听 */
+        if ( cur == "End" )
         {
-            INFO_STD_STREAM_LOG( g_logger )
-            << "Get Message"
-            << "%n"
-            << "Form:" << m_socket->getRemoteAddress()->toString() << "Msg:" << buffer << "%n%0";
-
-            /* 当消息为end的时候，停止监听 */
-            if ( !strcmp( buffer, "end" ) )
-            {
-                WERN_STD_STREAM_LOG( g_logger ) << "STOP LISTENING!"
-                                                << "%n%0";
-                break;
-            }
+            WERN_STD_STREAM_LOG( g_logger ) << "STOP LISTENING!"
+                                            << "%n%0";
+            client_addr->send( "End", 2 );
+            delete[] buffer;
+            break;
         }
+
+        client_addr->send( "ok", 2 );
+
+        delete[] buffer;
     }
 }
 

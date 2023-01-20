@@ -102,10 +102,8 @@ bool MSocket::setOption( int level, int option, const void* result, socklen_t le
 
 MSocket::ptr MSocket::accept()
 {
-    struct sockaddr addr;
-    socklen_t addr_len;
     MSocket::ptr sock( new MSocket( m_family, m_type, m_protocol ) );
-    int newsock = ::accept( m_sock, &addr, &addr_len);
+    int newsock = ::accept( m_sock, nullptr, nullptr );
     if ( newsock == -1 )
     {
         ERROR_STD_STREAM_LOG( g_logger )
@@ -310,7 +308,13 @@ int MSocket::recv( void* buffer, size_t length, int flags )
 {
     if ( isConnected() )
     {
-        return ::recv( m_sock, buffer, length, flags );
+        if ( ::recv( m_sock, buffer, length, flags ) == -1 )
+        {
+            ERROR_STD_STREAM_LOG( g_logger ) << "receive error errno=" << S( errno )
+                                             << " errstr=" << strerror( errno ) << "%n%0";
+            return -1;
+        }
+        return 1;
     }
     return -1;
 }
