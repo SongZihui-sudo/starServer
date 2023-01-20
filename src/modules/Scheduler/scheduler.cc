@@ -1,6 +1,9 @@
 #include "./scheduler.h"
+#include "modules/common/common.h"
+#include "modules/log/log.h"
 
 #include <aco.h>
+#include <string>
 #include <unistd.h>
 #include <vector>
 
@@ -145,6 +148,9 @@ void Scheduler::reset_task( std::string t_name, std::function< void() > t_func )
 void Scheduler::start()
 {
     Scheduler* Self = ( Scheduler* )self;
+ 
+    INFO_FILE_STREAM_LOG(Self->m_logger) << std::to_string(getTime()) << "Scheduler begin listening input task!" << "%n%0";
+
     while ( true )
     {
         if ( !Schedule_args.empty() )
@@ -210,6 +216,9 @@ void Scheduler::start()
 void Scheduler::run()
 {
     /* 新建线程来执行start */
+    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
+                                           << "Scheduler Begin Runing!"
+                                           << "%n%0";
     self                             = this; /* 传递this指针 */
     std::function< void() > func_ptr = this->start;
     m_thread.reset( new Threading( func_ptr, "Scheduler" ) );

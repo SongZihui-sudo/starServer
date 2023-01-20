@@ -2,9 +2,12 @@
 #include "modules/log/log.h"
 #include "modules/socket/address.h"
 #include "modules/socket/socket.h"
+
 #include "json/value.h"
 #include <cstring>
 #include <exception>
+#include <experimental/source_location>
+#include <functional>
 #include <string>
 
 namespace star
@@ -12,7 +15,7 @@ namespace star
 static Scheduler::ptr master_server_scheduler; /* 调度器 */
 static Threading::ptr master_server_thread;    /* 服务器线程 */
 void* c_args;
-static thread_local MSocket::ptr remote_sock = nullptr;
+static MSocket::ptr remote_sock = nullptr;
 
 master_server::master_server()
 {
@@ -81,34 +84,39 @@ void master_server::wait()
     this->print_logo();
     /* 运行调度器 */
     master_server_scheduler.reset( new Scheduler( 10, 10 ) );
-    master_server_scheduler->run(); /* 等待进行任务调度 */
-    /* 监听 socket 连接 */
+    master_server_scheduler->run(); /* 任务调度进程 */
+
     this->m_status = Normal;
 
     /* 设置 this 指针 */
     c_args = this;
+
     /* 新建一个线程进行等待*/
     int index = 0;
     int i     = 0;
     this->m_sock->listen();
 
     /* 阻塞线程，进行等待 */
-    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <-----> "
+    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
                                           << "Master Server Start Listening!"
                                           << "%n%0";
-    
+
+    /* 调度器的消息映射 */
+    MESSAGE_MAP( SOCKET_CONNECTS, 10 );
+
     while ( true )
     {
         remote_sock = this->m_sock->accept();
         if ( remote_sock )
         {
-            MESSAGE_MAP( SOCKET_CONNECTS, 10 );
+            std::string thread_name = "respond" + std::to_string( index );
+            Register( SOCKET_CONNECTS, index, 1, std::function<void()>(respond), thread_name ); /* 注册一个任务 */
+            index++;
+            Register( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
+
             INFO_STD_STREAM_LOG( this->m_logger )
             << std::to_string( getTime() ) << " <-----> "
             << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString() << "%n%0";
-            Register( SOCKET_CONNECTS, index, 1, respond, "respond" + std::to_string( index ) ); /* 注册一个任务 */
-            index++;
-            Register( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
 
             if ( star::Schedule_args.empty() )
             {
@@ -229,50 +237,59 @@ void master_server::Split_file( std::string f_name,
 
 void master_server::respond()
 {
-    /* 获取this指针 */
-    master_server* self = ( master_server* )c_args;
-
-    if ( !remote_sock )
+    try
     {
-        FATAL_STD_STREAM_LOG( self->m_logger ) << "The connection has not been established."
-                                               << "%n%0";
-        return;
-    }
+        /* 获取this指针 */
+        master_server* self = ( master_server* )c_args;
 
-    self->m_status = Normal;
+        if ( !remote_sock )
+        {
+            FATAL_STD_STREAM_LOG( self->m_logger )
+            << "The connection has not been established."
+            << "%n%0";
+            return;
+        }
 
-    /* 缓冲区 */
-    int length   = self->m_settings->get( "BufferSize" ).asInt();
-    char* buffer = new char[length];
-    /* 接受信息 */
-    remote_sock->recv( buffer, length, 0 );
+        self->m_status = Normal;
 
-    /* 解析字符串 */
-    star::protocol::Protocol_Struct current_procotol; /* 初始化协议结构体 */
-    self->m_protocol.reset( new protocol( "Chunk-Procotol", current_procotol ) ); /* 协议解析器 */
-    self->m_protocol->toJson( buffer ); /* 把缓冲区的字符串转换成json */
-    self->m_protocol->Deserialize();    /* 反序列化json成结构体 */
+        /* 缓冲区 */
+        int length   = self->m_settings->get( "BufferSize" ).asInt();
+        char* buffer = new char[length];
+        /* 接受信息 */
+        remote_sock->recv( buffer, length, 0 );
 
-    /* switch 中用到的变量 */
+        /* 解析字符串 */
+        star::protocol::Protocol_Struct current_procotol; /* 初始化协议结构体 */
+        self->m_protocol.reset( new protocol( "Chunk-Procotol", current_procotol ) ); /* 协议解析器 */
+        self->m_protocol->toJson( buffer ); /* 把缓冲区的字符串转换成json */
+        self->m_protocol->Deserialize();    /* 反序列化json成结构体 */
 
-    /* 判断，请求内容 */
-    switch ( current_procotol.bit )
-    {
+        /* switch 中用到的变量 */
+
+        /* 判断，请求内容 */
+        switch ( current_procotol.bit )
+        {
 
 #define XX()                                                                               \
     self->m_protocol->set_protocol_struct( current_procotol );                             \
     temp2 = self->m_protocol->toStr();                                                     \
     self->m_sock->send( temp2.c_str(), temp2.size(), 0 );
 
-        /* 标识为101，向客户端回复文件元数据 */
-        case 101:
-            break;
-        default:
-            ERROR_STD_STREAM_LOG( self->m_logger ) << "Unknown server instruction！"
-                                                   << "%n%0";
-            break;
+            /* 标识为101，向客户端回复文件元数据 */
+            case 101:
+                break;
+            default:
+                ERROR_STD_STREAM_LOG( self->m_logger ) << "Unknown server instruction！"
+                                                       << "%n%0";
+                break;
 
 #undef XX
+        }
+    }
+    catch ( std::exception& e )
+    {
+        std::experimental::source_location location;
+        throw e.what() + location.line();
     }
 }
 
