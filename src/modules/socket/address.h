@@ -106,7 +106,7 @@ public:
     virtual const sockaddr* getAddr() const = 0;
 
     /**
-     * @brief 返回sockaddr指针,读写
+     * @brief  ,读写
      */
     virtual sockaddr* getAddr() = 0;
 

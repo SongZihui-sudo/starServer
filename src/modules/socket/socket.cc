@@ -102,8 +102,10 @@ bool MSocket::setOption( int level, int option, const void* result, socklen_t le
 
 MSocket::ptr MSocket::accept()
 {
+    struct sockaddr addr;
+    socklen_t addr_len;
     MSocket::ptr sock( new MSocket( m_family, m_type, m_protocol ) );
-    int newsock = ::accept( m_sock, nullptr, nullptr );
+    int newsock = ::accept( m_sock, &addr, &addr_len);
     if ( newsock == -1 )
     {
         ERROR_STD_STREAM_LOG( g_logger )
