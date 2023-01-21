@@ -53,6 +53,7 @@ static thread_local std::string find_name = "";
 static thread_local int result_index      = -1;
 static void* self                         = nullptr; /* this 指针 */
 static pid_t m_id                         = 0;
+/* 全局变量 */
 extern std::vector< void* > Schedule_args;
 extern int Schedule_answer;
 extern pthread_mutex_t mutex;

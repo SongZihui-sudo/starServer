@@ -9,11 +9,18 @@
 #include "../common/common.h"
 #include "../log/log.h"
 
+<<<<<<< HEAD
 #include <cstddef>
 #include <exception>
 #include <functional>
 #include <string>
 #include <unistd.h>
+=======
+#include <exception>
+#include <functional>
+#include <string>
+#include <experimental/source_location>
+>>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 
 namespace star
 {
@@ -40,6 +47,10 @@ Threading::Threading( std::function< void() > func, const std::string& name )
     << "New Thread Created. Current nums of thread: " << std::to_string( thread_nums ) << "%n%0";
 
     int rt = pthread_create( &m_thread, nullptr, &Threading::run, this );
+
+    INFO_STD_STREAM_LOG( this->t_logger ) << std::to_string( getTime() ) << " <----> "
+                                          << "New Thread Created!"
+                                          << "flag: " << std::to_string( rt ) << "%n%0";
 
     if ( rt )
     {
@@ -85,6 +96,7 @@ void Threading::exit()
 void* Threading::run( void* arg )
 {
     Threading* thread = ( Threading* )arg;
+<<<<<<< HEAD
 
     INFO_STD_STREAM_LOG( thread->t_logger )
     << std::to_string( getTime() ) << " <----> "
@@ -93,11 +105,31 @@ void* Threading::run( void* arg )
 
     thread->m_status = RUNING;
     thread->m_id     = GetThreadId();
+=======
+    thread->m_status  = RUNING;
+    thread->m_id      = GetThreadId();
+
+    INFO_STD_STREAM_LOG( thread->t_logger ) << std::to_string( getTime() ) << " <----> "
+                                            << "Thread " << std::to_string( thread->m_id ) << " "
+                                            << "runing"
+                                            << "%n%0";
+
+>>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
     pthread_setname_np( pthread_self(), thread->get_name().substr( 0, 15 ).c_str() );
 
-    std::function< void() > cb;
-    cb.swap( thread->func );
+    try
+    {
+        std::function<void()> func;
+        func.swap(thread->func);
+        func();
+    }
+    catch(std::exception& e)
+    {
+        std::experimental::source_location location;
+        throw e.what() + location.line();
+    }
 
+<<<<<<< HEAD
     try
     {
         cb();
@@ -107,6 +139,8 @@ void* Threading::run( void* arg )
         throw e.what();
     }
 
+=======
+>>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
     thread->m_status = FREE;
     sem_post( &thread->m_sem );
 

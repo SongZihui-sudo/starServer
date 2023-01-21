@@ -148,10 +148,15 @@ void Scheduler::reset_task( std::string t_name, std::function< void() > t_func )
 void Scheduler::start()
 {
     Scheduler* Self = ( Scheduler* )self;
+<<<<<<< HEAD
 
     INFO_STD_STREAM_LOG( Self->m_logger ) << std::to_string( getTime() ) << " <----> "
                                           << "Scheduler Staring!"
                                           << "%n%0";
+=======
+ 
+    INFO_FILE_STREAM_LOG(Self->m_logger) << std::to_string(getTime()) << "Scheduler begin listening input task!" << "%n%0";
+>>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 
     while ( true )
     {
@@ -233,6 +238,9 @@ void Scheduler::start()
 void Scheduler::run()
 {
     /* 新建线程来执行start */
+    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
+                                           << "Scheduler Begin Runing!"
+                                           << "%n%0";
     self                             = this; /* 传递this指针 */
     std::function< void() > func_ptr = this->start;
     m_thread.reset( new Threading( func_ptr, "Scheduler" ) );
