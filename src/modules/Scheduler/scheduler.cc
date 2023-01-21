@@ -1,6 +1,9 @@
 #include "./scheduler.h"
+#include "modules/common/common.h"
+#include "modules/log/log.h"
 
 #include <aco.h>
+#include <string>
 #include <unistd.h>
 #include <vector>
 
@@ -8,7 +11,7 @@ namespace star
 {
 std::vector< void* > Schedule_args = {};
 pthread_mutex_t mutex;
-int Schedule_answer = 0;
+int Schedule_answer = -1;
 
 void Scheduler::Regist_task( std::function< void() > t_func, std::string t_name )
 {
@@ -25,7 +28,7 @@ void Scheduler::assign_task( task& t_task )
         {
             /* 为这个线程分配任务函数 */
             t_task.t_status = RUNING;
-            this->m_threads[i]->reset( t_task.t_func );
+            this->m_threads[i]->reset( t_task.t_func, t_task.t_name );
             return;
         }
     }
@@ -145,6 +148,11 @@ void Scheduler::reset_task( std::string t_name, std::function< void() > t_func )
 void Scheduler::start()
 {
     Scheduler* Self = ( Scheduler* )self;
+
+    INFO_STD_STREAM_LOG( Self->m_logger ) << std::to_string( getTime() ) << " <----> "
+                                          << "Scheduler Staring!"
+                                          << "%n%0";
+
     while ( true )
     {
         if ( !Schedule_args.empty() )
@@ -154,6 +162,9 @@ void Scheduler::start()
             switch ( *( int* )Schedule_args[0] )
             {
                 case 1:
+                    INFO_STD_STREAM_LOG( Self->m_logger )
+                    << std::to_string( getTime() ) << " <----> "
+                    << "Scheduler flag: " << std::to_string( 1 ) << "%n%0";
                     /* 注册任务 */
                     Self->Regist_task( *( std::function< void() >* )Schedule_args[1],
                                        ( ( std::string* )Schedule_args[2] )->c_str() );
@@ -161,12 +172,17 @@ void Scheduler::start()
                     Schedule_answer = 1;
                     break;
                 case 2:
+                    INFO_STD_STREAM_LOG( Self->m_logger )
+                    << std::to_string( getTime() ) << " <----> "
+                    << "Scheduler flag: " << std::to_string( 2 ) << "%n%0";
                     Self->delete_task( ( ( std::string* )Schedule_args[1] )->c_str() );
                     Schedule_args.clear();
                     Schedule_answer = 1;
                     break;
-                    break;
                 case 3:
+                    INFO_STD_STREAM_LOG( Self->m_logger )
+                    << std::to_string( getTime() ) << " <----> "
+                    << "Scheduler flag: " << std::to_string( 3 ) << "%n%0";
                     /* 重设任务 */
                     Self->reset_task( ( ( std::string* )Schedule_args[2] )->c_str(),
                                       *( std::function< void() >* )Schedule_args[1] );
@@ -174,6 +190,9 @@ void Scheduler::start()
                     Schedule_answer = 1;
                     break;
                 case 4:
+                    INFO_STD_STREAM_LOG( Self->m_logger )
+                    << std::to_string( getTime() ) << " <----> "
+                    << "Scheduler flag: " << std::to_string( 4 ) << "%n%0";
                     /* 分配任务 */
                     for ( size_t i = 0; i < Self->m_tasks.size(); i++ )
                     {
@@ -186,6 +205,10 @@ void Scheduler::start()
                     Schedule_answer = 1;
                     break;
                 case 5:
+                    INFO_STD_STREAM_LOG( Self->m_logger )
+                    << std::to_string( getTime() ) << " <----> "
+                    << "Scheduler flag: " << std::to_string( 5 ) << "%n%0";
+
                     WERN_STD_STREAM_LOG( Self->m_logger ) << "The scheduler process ends."
                                                           << "%n%0";
                     /* 线程结束 */
@@ -231,6 +254,18 @@ void Scheduler::find_value()
     if ( result_index < 0 )
     {
         result_index = -2;
+    }
+}
+
+void Scheduler::manage()
+{
+    /* 调度还没运行的任务 */
+    for ( size_t i = 0; i < this->m_tasks.size(); i++ )
+    {
+        if ( this->m_tasks[i].t_status == INIT )
+        {
+            this->assign_task( this->m_tasks[i] );
+        }
     }
 }
 

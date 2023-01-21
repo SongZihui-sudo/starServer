@@ -135,9 +135,12 @@ public:
     /* 获取信号量 */
     sem_t get_sem() { return m_thread->get_sem(); }
 
+    /* 动态调度 */
+    void manage();
+
 protected:
     /*
-        启动调度器
+        启动静态调度器
     */
     static void start();
 

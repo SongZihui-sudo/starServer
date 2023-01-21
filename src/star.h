@@ -27,4 +27,6 @@
 
 #include "./modules/meta_data/meta_data.h"
 
+#include "./core/tcpServer/tcpserver.h"
+
 #endif

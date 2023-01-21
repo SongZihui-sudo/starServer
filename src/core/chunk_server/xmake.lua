@@ -13,6 +13,7 @@ target("Chunk_Server")
     add_deps("database")
     add_deps("scheduler")
     add_deps("socket")
+    add_deps("tcpserver")
     add_deps("thread")
     set_kind("binary")  -- 生成二进制文件
     add_files("./*.cc")

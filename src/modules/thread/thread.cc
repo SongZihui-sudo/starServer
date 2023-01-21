@@ -9,11 +9,16 @@
 #include "../common/common.h"
 #include "../log/log.h"
 
+#include <cstddef>
+#include <exception>
 #include <functional>
 #include <string>
+#include <unistd.h>
 
 namespace star
 {
+
+size_t thread_nums = 0;
 
 Threading::Threading( std::function< void() > func, const std::string& name )
 {
@@ -24,9 +29,15 @@ Threading::Threading( std::function< void() > func, const std::string& name )
         m_name = "UNKNOW";
     }
 
-    this->t_logger.reset(STAR_NAME("THREAD_LOGGER"));
+    this->t_logger.reset( STAR_NAME( "THREAD_LOGGER" ) );
 
     m_status = INIT;
+
+    thread_nums++;
+
+    INFO_STD_STREAM_LOG( this->t_logger )
+    << std::to_string( getTime() ) << " <----> "
+    << "New Thread Created. Current nums of thread: " << std::to_string( thread_nums ) << "%n%0";
 
     int rt = pthread_create( &m_thread, nullptr, &Threading::run, this );
 
@@ -37,16 +48,16 @@ Threading::Threading( std::function< void() > func, const std::string& name )
         << "pthread_create thread fail, rt=" << S( rt ) << " name=" << name << "%n%0";
         throw std::logic_error( "pthread_create error" );
     }
-    
-    //sem_wait( &this->m_sem );
+
+    // sem_wait( &this->m_sem );
 }
 
 void Threading::join()
 {
     if ( this->m_thread )
     {
-        this->m_status  = RUNING;
-        
+        this->m_status = RUNING;
+
         int rt = pthread_join( this->m_thread, nullptr );
 
         if ( rt )
@@ -74,23 +85,37 @@ void Threading::exit()
 void* Threading::run( void* arg )
 {
     Threading* thread = ( Threading* )arg;
-    thread->m_status  = RUNING;
-    thread->m_id      = GetThreadId();
+
+    INFO_STD_STREAM_LOG( thread->t_logger )
+    << std::to_string( getTime() ) << " <----> "
+    << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Runing"
+    << "%n%0";
+
+    thread->m_status = RUNING;
+    thread->m_id     = GetThreadId();
     pthread_setname_np( pthread_self(), thread->get_name().substr( 0, 15 ).c_str() );
 
     std::function< void() > cb;
     cb.swap( thread->func );
 
-    cb();
+    try
+    {
+        cb();
+    }
+    catch ( std::exception& e )
+    {
+        throw e.what();
+    }
 
-    thread->m_status  = FREE;
+    thread->m_status = FREE;
     sem_post( &thread->m_sem );
 
     return nullptr;
 }
 
-void Threading::reset( std::function< void() > func )
+void Threading::reset( std::function< void() > func, std::string thread_name )
 {
+    this->m_name = thread_name;
     this->func = func;
 
     m_status = INIT;
@@ -105,7 +130,7 @@ void Threading::reset( std::function< void() > func )
         throw std::logic_error( "pthread_create error" );
     }
 
-    //sem_wait( &this->m_sem );
+    // sem_wait( &this->m_sem );
 }
 
 }

@@ -12,6 +12,7 @@ target("master_server")
     add_deps("Settings")
     add_deps("database")
     add_deps("scheduler")
+    add_deps("tcpserver")
     add_deps("socket")
     add_deps("thread")
     set_kind("binary")  -- 生成二进制文件

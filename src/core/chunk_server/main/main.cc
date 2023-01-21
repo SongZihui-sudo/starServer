@@ -1,8 +1,8 @@
 #include "../chunk_server.h"
 /* 服务器对象 */
-star::chunk_server::ptr cs( new star::chunk_server() );
+star::chunk_server::ptr cs( new star::chunk_server( "chunk_server_settins.json" ) );
 
-void run() { cs->wait(); }
+void run() { cs->wait( cs->respond, cs.get() ); }
 
 /*
     Chunk 服务器

@@ -12,6 +12,7 @@ includes("./src/modules/socket")
 includes("./src/modules/Scheduler")
 includes("./src/core/chunk_server")
 includes("./src/core/master_server")
+includes("./src/core/tcpServer")
 
 add_includedirs("./src/")
 

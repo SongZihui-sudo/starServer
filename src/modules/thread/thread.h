@@ -8,6 +8,7 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <semaphore.h>
@@ -19,6 +20,9 @@
 
 namespace star
 {
+
+extern size_t thread_nums; /* 创建的线程数量 */
+
 /*
     线程类
 */
@@ -37,7 +41,7 @@ protected:
 public:
     typedef std::shared_ptr< Threading > ptr;
 
-    Threading( std::function< void() > func, const std::string& name = "UNKNOW");
+    Threading( std::function< void() > func, const std::string& name = "UNKNOW" );
 
     ~Threading()
     {
@@ -51,7 +55,7 @@ public:
     /*
         重设
      */
-    void reset( std::function< void() > func );
+    void reset( std::function< void() > func, std::string thread_name );
 
     /*
         阻塞 等待 threadid 线程运行结束之后再运行
@@ -98,10 +102,10 @@ private:
     void operator=( Threading& ) = delete;
 
 private:
-    Thread_Status m_status;              /* 线程状态 */
+    Thread_Status m_status;       /* 线程状态 */
     pid_t m_id;                   /* 线程id */
     std::string m_name;           /* 线程名 */
-    pthread_t m_thread;       /* 线程 */
+    pthread_t m_thread;           /* 线程 */
     std::function< void() > func; /* 线程执行函数 */
     sem_t m_sem;                  /* 信号量 */
     star::Logger::ptr t_logger;   /* 日志器 */

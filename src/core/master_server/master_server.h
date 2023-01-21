@@ -1,36 +1,24 @@
 #ifndef MASTER_SERVER_H
 #define MASTER_SERVER_H
 
+#include "core/tcpServer/tcpserver.h"
 #include "modules/log/log.h"
+
 #include <cstdint>
 #include <star.h>
-
 #include <map>
+#include <string>
 #include <vector>
+#include <filesystem>
 
 namespace star
 {
 /*
     master server 服务器
 */
-class master_server
+class master_server : public tcpserver
 {
 protected:
-    /*
-        服务器状态
-     */
-    enum Status
-    {
-        Normal        = 0,
-        NOT_FOUND     = 1,
-        BREAKDOWN     = 2,
-        OK            = 3,
-        ERROR         = 4,
-        COMMAND_ERROR = 5,
-        PARSING_ERROR = 6,
-        INIT          = 7
-    };
-
     struct chunk_server_info
     {
         std::string addr;
@@ -40,16 +28,10 @@ protected:
 public:
     typedef std::shared_ptr< master_server > ptr;
 
-    master_server();
-    ~master_server() = default;
+    master_server(std::filesystem::path settings_path);
+    virtual ~master_server() = default;
 
 public:
-    /* 等待连接 */
-    virtual void wait();
-
-    /* 服务器关闭 */
-    virtual void close();
-
     /* 查找指定文件的元数据信息 */
     virtual bool find_file_meta_data( file_meta_data& data, std::string f_name );
 
@@ -62,12 +44,6 @@ public:
                              std::string path,
                              std::map< std::string, file_meta_data >& meta_data_tab );
 
-    /* 获取服务器名 */
-    std::string get_name() { return this->m_name; }
-
-    /* 获取服务器状态 */
-    Status get_status() { return this->m_status; }
-
 public:
     /* 用户登录认证 */
     bool login( std::string user_name, std::string pwd );
@@ -75,9 +51,10 @@ public:
     /* 用户注册 */
     bool regist( std::string user_name, std::string pwd );
 
-protected:
     /* 响应连接 */
     static void respond();
+    
+protected:
 
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );
@@ -96,15 +73,8 @@ protected:
     }
 
 private:
-    Status m_status;                                       /* 服务器状态 */
-    config::ptr m_settings;                                /* 服务器设置 */
-    std::string m_name;                                    /* 服务器名 */
-    Logger::ptr m_logger;                                  /* 日志器 */
-    MSocket::ptr m_sock;                                   /* socket */
-    protocol::ptr m_protocol;                              /* 协议序列化 */
     size_t max_chunk_size;                                 /* chunk 的最大大小  */
     std::map< std::string, file_meta_data > meta_data_tab; /* 元数据表 */
-    levelDB::ptr m_db;                                     /* 服务器数据库 */
     std::vector< chunk_server_info > chunk_server_list;    /* chunk server 信息 */
 };
 }
