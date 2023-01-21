@@ -1,6 +1,8 @@
 #include "../../common/common.h"
 #include "../../log/log.h"
 #include "../socket.h"
+#include "../../protocol/protocol.h"
+
 #include "modules/socket/address.h"
 #include <cstddef>
 #include <cstdint>
@@ -148,6 +150,11 @@ void test3()
         << "Get Message"
         << "%n"
         << "Form:" << m_socket->getRemoteAddress()->toString() << "Msg:" << cur << "%n%0";
+
+        star::protocol::Protocol_Struct t;
+        star::protocol::ptr test(new star::protocol("test", t));
+
+        test->toJson(cur);
 
         /* 当消息为end的时候，停止监听 */
         if ( cur == "End" )

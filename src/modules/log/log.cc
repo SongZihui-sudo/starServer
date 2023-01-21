@@ -6,8 +6,10 @@
  */
 
 #include "./log.h"
+#include "modules/common/common.h"
 
 #include <cstdarg>
+#include <string>
 
 namespace star
 {
@@ -319,7 +321,14 @@ void NewLineItem::format( std::ostringstream& in, LogEvent::ptr in_event ) { in 
 
 void TimeItem::format( std::ostringstream& in, LogEvent::ptr in_event )
 {
-    in << in_event->get_time();
+    if ( in_event )
+    {
+        in << in_event->get_time();
+    }
+    else
+    {
+        in << std::to_string(getTime()) << " <----> ";
+    }
 }
 
 void EndItem::format( std::ostringstream& in, LogEvent::ptr in_event ) { in << std::endl; }
@@ -352,7 +361,7 @@ std::string random_string( size_t len )
     return string;
 }
 
-void FileLogAppender::generate_log_file(std::ofstream& in)
+void FileLogAppender::generate_log_file( std::ofstream& in )
 {
     int random_len   = rand() % 100;
     std::string name = random_string( random_len );
@@ -374,7 +383,7 @@ void FileLogAppender::reopen()
 void LogManager::tofile()
 {
     std::ofstream in;
-    FileLogAppender::generate_log_file(in);
+    FileLogAppender::generate_log_file( in );
 
     for ( auto it : this->m_loggerList )
     {

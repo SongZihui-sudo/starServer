@@ -1,33 +1,21 @@
 #include "./master_server.h"
 #include "core/tcpServer/tcpserver.h"
 #include "modules/log/log.h"
+#include "modules/protocol/protocol.h"
 #include "modules/socket/address.h"
 #include "modules/socket/socket.h"
 
 #include "json/value.h"
+#include <cstddef>
 #include <cstring>
 #include <exception>
-<<<<<<< HEAD
 #include <iostream>
-=======
-#include <experimental/source_location>
-#include <functional>
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 #include <string>
 
 namespace star
 {
-<<<<<<< HEAD
 master_server::master_server( std::filesystem::path settings_path )
 : tcpserver( settings_path )
-=======
-static Scheduler::ptr master_server_scheduler; /* 调度器 */
-static Threading::ptr master_server_thread;    /* 服务器线程 */
-void* c_args;
-static MSocket::ptr remote_sock = nullptr;
-
-master_server::master_server()
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 {
     /* 配置服务器 */
     this->m_status = INIT;
@@ -52,92 +40,6 @@ master_server::master_server()
     };
 }
 
-<<<<<<< HEAD
-=======
-void master_server::wait()
-{
-    this->print_logo();
-    /* 运行调度器 */
-    master_server_scheduler.reset( new Scheduler( 10, 10 ) );
-    master_server_scheduler->run(); /* 任务调度进程 */
-
-    this->m_status = Normal;
-
-    /* 设置 this 指针 */
-    c_args = this;
-
-    /* 新建一个线程进行等待*/
-    int index = 0;
-    int i     = 0;
-    this->m_sock->listen();
-
-    /* 阻塞线程，进行等待 */
-    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
-                                          << "Master Server Start Listening!"
-                                          << "%n%0";
-
-    /* 调度器的消息映射 */
-    MESSAGE_MAP( SOCKET_CONNECTS, 10 );
-
-    while ( true )
-    {
-        remote_sock = this->m_sock->accept();
-        if ( remote_sock )
-        {
-            std::string thread_name = "respond" + std::to_string( index );
-            Register( SOCKET_CONNECTS, index, 1, std::function<void()>(respond), thread_name ); /* 注册一个任务 */
-            index++;
-            Register( SOCKET_CONNECTS, index, 4 ); /* 任务调度 */
-
-            INFO_STD_STREAM_LOG( this->m_logger )
-            << std::to_string( getTime() ) << " <-----> "
-            << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString() << "%n%0";
-
-            if ( star::Schedule_args.empty() )
-            {
-                /* 取指令 */
-                star::Schedule_args = SOCKET_CONNECTS[i];
-                i++;
-            }
-
-            while ( !SOCKET_CONNECTS[i].empty() )
-            {
-                if ( star::Schedule_answer == 1 )
-                {
-                    /* 取指令 */
-                    star::Schedule_args.clear();
-                    star::Schedule_args   = SOCKET_CONNECTS[i];
-                    star::Schedule_answer = 0;
-                    i++;
-                }
-                else if ( star::Schedule_answer == 2 )
-                {
-                    FATAL_STD_STREAM_LOG( this->m_logger ) << "Server exit！"
-                                                           << "%n%0";
-                    star::Schedule_answer = 0;
-                    return;
-                }
-                else
-                {
-                    this->m_status = COMMAND_ERROR;
-                    WERN_STD_STREAM_LOG( this->m_logger ) << "Bad server flag！"
-                                                          << "%n%0";
-                }
-            }
-            index++;
-        }
-    }
-}
-
-void master_server::close()
-{
-    /* 退出服务器程序 */
-    WERN_STD_STREAM_LOG( this->m_logger ) << "Server program exit！"
-                                          << "%n%0";
-    exit( -1 );
-}
-
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 bool master_server::find_file_meta_data( file_meta_data& data, std::string f_name )
 {
     for ( auto item : this->meta_data_tab )
@@ -218,73 +120,40 @@ void master_server::respond()
     try
     {
         /* 获取this指针 */
-<<<<<<< HEAD
         master_server* self = ( master_server* )( master_server* )arg_ss.top();
 
         MSocket::ptr remote_sock = sock_ss.top();
-=======
-        master_server* self = ( master_server* )c_args;
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
 
         if ( !remote_sock )
         {
             FATAL_STD_STREAM_LOG( self->m_logger )
-<<<<<<< HEAD
-            << "The connection has not been established." << "%n%0";
-=======
             << "The connection has not been established."
             << "%n%0";
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
             return;
         }
 
         self->m_status = Normal;
 
-        /* 缓冲区 */
-        int length   = self->m_settings->get( "BufferSize" ).asInt();
-        char* buffer = new char[length];
+        /* 循环接受客户端的消息 */
+        /* 初始化协议结构体 */
+        protocol::ptr current_procotol;
+
         /* 接受信息 */
-        remote_sock->recv( buffer, length, 0 );
+        current_procotol = tcpserver::recv( remote_sock, self->buffer_size );
 
-        /* 解析字符串 */
-        star::protocol::Protocol_Struct current_procotol; /* 初始化协议结构体 */
-        self->m_protocol.reset( new protocol( "Chunk-Procotol", current_procotol ) ); /* 协议解析器 */
-        self->m_protocol->toJson( buffer ); /* 把缓冲区的字符串转换成json */
-        self->m_protocol->Deserialize();    /* 反序列化json成结构体 */
+        /* 看是否接受成功 */
+        if ( !current_procotol )
+        {
+            FATAL_STD_STREAM_LOG( self->m_logger ) << "%D"
+                                                   << "Receive Message Error"
+                                                   << "%n%0";
+        }
 
-<<<<<<< HEAD
+        INFO_STD_STREAM_LOG( self->m_logger ) << current_procotol->toStr() << "%n%0";
     }
     catch ( std::exception& e )
     {
         throw e.what();
-=======
-        /* switch 中用到的变量 */
-
-        /* 判断，请求内容 */
-        switch ( current_procotol.bit )
-        {
-
-#define XX()                                                                               \
-    self->m_protocol->set_protocol_struct( current_procotol );                             \
-    temp2 = self->m_protocol->toStr();                                                     \
-    self->m_sock->send( temp2.c_str(), temp2.size(), 0 );
-
-            /* 标识为101，向客户端回复文件元数据 */
-            case 101:
-                break;
-            default:
-                ERROR_STD_STREAM_LOG( self->m_logger ) << "Unknown server instruction！"
-                                                       << "%n%0";
-                break;
-
-#undef XX
-        }
-    }
-    catch ( std::exception& e )
-    {
-        std::experimental::source_location location;
-        throw e.what() + location.line();
->>>>>>> 22126066f098e2b6200fdf97ae03021ab899e469
     }
 }
 

@@ -1,8 +1,10 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
+#include "../log/log.h"
 #include "./JsonSerial.h"
 
+#include "json/config.h"
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -22,17 +24,18 @@ public:
         std::string from;                /* 请求者ip */
         std::string file_name;           /* 文件名 */
         std::vector< std::string > path; /* 路径 */
-        size_t package_size;                     /* 大小 */
-        std::string data; /* 文件内容 */
+        size_t package_size;             /* 大小 */
+        std::string data;                /* 文件内容 */
         std::vector< void* > customize; /* 自定义内容，内容只可以是原始类型 */
     };
 
 public:
-    protocol( std::string name, Protocol_Struct buf )
+    protocol( std::string name, Protocol_Struct& buf )
     {
         this->m_name = name;
         js.reset( new JsonSerial() );
         this->m_protocol = buf;
+        m_logger.reset( STAR_NAME( "protocol_parse" ) );
     };
     ~protocol() = default;
 
@@ -90,8 +93,7 @@ public:
     /* 把 json 转换成 string */
     std::string toStr()
     {
-        Json::FastWriter styled_writer;
-        std::string s = styled_writer.write( js->get() );
+        std::string s = js->get().toStyledString();
         return s;
     }
 
@@ -104,14 +106,26 @@ public:
     }
 
     /* 字符串 转 json */
-    void toJson( std::string str )
+    bool toJson( std::string str )
     {
+
         Json::CharReaderBuilder reader;
         std::unique_ptr< Json::CharReader > const json_read( reader.newCharReader() );
         Json::Value tree;
         Json::String err;
-        json_read->parse( str.c_str(), str.c_str() + str.length(), &tree, &err );
+        json_read->parse( str.begin().base(), str.end().base(), &tree, &err );
         js->set( tree );
+
+        if ( !err.empty() )
+        {
+            FATAL_STD_STREAM_LOG( this->m_logger ) << "%D" << err << "%n%0";
+
+            return false;
+        }
+
+        this->js->set(tree);
+
+        return true;
     }
 
     void get( Json::Value& val ) { val = js.get(); }
@@ -121,7 +135,7 @@ public:
         Json::Value::Members mem = js->get().getMemberNames();
         for ( auto iter = mem.begin(); iter != mem.end(); iter++ )
         {
-            std::cout << js->get()[*iter];
+            std::cout << *iter << ":" << js->get()[*iter];
         }
     }
 
@@ -131,6 +145,7 @@ private:
     Protocol_Struct m_protocol; /* 协议 */
     std::string m_name;         /* 协议名 */
     JsonSerial::ptr js;
+    Logger::ptr m_logger;
 };
 
 }

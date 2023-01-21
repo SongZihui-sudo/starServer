@@ -3,6 +3,16 @@
 '''
 
 import socket
+import json
+
+
+def read_json(path: str) :
+    
+    with open(path,'r',encoding='utf8')as fp:
+        json_data = json.load(fp)
+
+    return str(json_data)
+
 
 class MSocket:
     def __init__(self, mode, addr: str = "UNKNOW", port: int = 0) -> None:
@@ -66,11 +76,21 @@ def main():
         port: int = int(input("输入服务器端口："))
         client = MSocket(mode, addr, port)
         client.connect()
+        '''
         buf: str = str(input("输入要发送的内容：(输入 End 为结束)："))
         while buf != "End":
             client.send(buf)
             buf: str = str(input("输入要发送的内容：(输入 End 为结束)："))
         client.send("End")
+        '''
+
+        jsonstr: str = read_json("./tools/protocol.json")
+        jsonstr = list(jsonstr)
+        for i in range(len(jsonstr)):
+            if jsonstr[i] == '\'':
+                jsonstr[i] = '\"'
+        jsonstr = ''.join(jsonstr)
+        client.send(jsonstr)
 
     elif mode == 2:
         addr: str = str(input("输入服务器地址："))

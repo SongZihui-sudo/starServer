@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include "../common/common.h"
+
 namespace star
 {
 class LogFormatter;
@@ -211,7 +213,7 @@ public:
 
     uint64_t get_time() { return this->m_time; }; /* 获取时间 */
 
-    std::stringstream& get_formatted() { return this->m_formatted; } /* 获取格式化串 */
+    std::ostringstream& get_formatted() { return this->m_formatted; } /* 获取格式化串 */
 
     std::string get_detail() { return this->m_message; } /* 获取日志内容 */
 
@@ -260,7 +262,7 @@ private:
     uint32_t m_threadId = 0;       /* 线程id */
     uint32_t m_fiberId  = 0;       /* 协程id */
     uint64_t m_time     = 0;       /* 日志时间 */
-    std::stringstream m_formatted; /* 格式化串 */
+    std::ostringstream m_formatted; /* 格式化串 */
     std::string m_message;         /* 内容 */
     std::string m_name;            /* 日志名称 */
 };
@@ -643,6 +645,10 @@ public:
                 temp++;
                 switch ( *temp )
                 {
+                    case 'D':
+                        TimeItem::format(this->m_formatter->get_formatted()->get_formatted(), nullptr);
+                        temp++;
+                        break;
                     case 'n':
                         this->m_formatter->get_formatted()->get_formatted() << "\n";
                         temp++;

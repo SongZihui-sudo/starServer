@@ -4,6 +4,9 @@
 #include "modules/log/log.h"
 #include "modules/protocol/protocol.h"
 
+#include "json/config.h"
+#include <algorithm>
+#include <cstddef>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -107,7 +110,7 @@ void tcpserver::wait( void respond(), void* self )
             std::string thread_name = "respond" + std::to_string( index );
 
             /* 把新连接放入到调度器里 */
-            server_scheduler->Regist_task(std::function< void() >( respond ),thread_name);
+            server_scheduler->Regist_task( std::function< void() >( respond ), thread_name );
             server_scheduler->manage();
 
             index++;
@@ -122,36 +125,48 @@ void tcpserver::close()
     exit( -1 );
 }
 
-protocol::Protocol_Struct tcpserver::recv( MSocket::ptr remote_sock )
+protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 {
     protocol::Protocol_Struct ret;
+    protocol::ptr protocoler( new protocol( "recv", ret ) );
 
     /* 初始化缓冲区 */
-    char* buffer = new char[this->buffer_size];
-    remote_sock->recv( buffer, this->buffer_size );
+    char* buffer = new char[buffer_size];
+    remote_sock->recv( buffer, buffer_size );
 
+    Json::String ready = buffer;
+
+    std::cout << ready << "\n";
+    
     /* 把缓冲区中读到的字符转换成为json格式 */
-    this->m_protocol->toJson( buffer );
+    if(!protocoler->toJson( ready ))
+    {
+        return nullptr;
+    }
 
+    protocoler->display();
+    
     /* 把 json 反序列化成为结构体 */
-    this->m_protocol->set_protocol_struct( ret );
-    this->m_protocol->Deserialize();
+    protocoler->Deserialize();
 
     delete[] buffer;
-    return ret;
+    
+    return protocoler;
 }
 
-int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
+int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf, size_t buffer_size )
 {
+    protocol::ptr protocoler( new protocol( "send", buf ) );
+
     /* 序列化结构体 */
-    this->m_protocol->set_protocol_struct( buf );
-    this->m_protocol->Serialize();
+    protocoler->set_protocol_struct( buf );
+    protocoler->Serialize();
 
     /* 获得序列化后的字符串 */
-    const char* buffer = new char[this->buffer_size];
-    this->m_protocol->toCStr( buffer );
+    const char* buffer = new char[buffer_size];
+    protocoler->toCStr( buffer );
 
-    int flag = remote_sock->send( buffer, this->buffer_size );
+    int flag = remote_sock->send( buffer, buffer_size );
 
     delete[] buffer;
     return flag;

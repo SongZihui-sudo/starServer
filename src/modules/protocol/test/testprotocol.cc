@@ -26,8 +26,17 @@ int main()
     const char* temp = new char[100];
     test->toCStr(temp);
     std::cout << temp << std::endl;
+
     test->toJson(temp);
+    
     test->display();
+
+    star::protocol::Protocol_Struct t2;
+    star::protocol::ptr test2( new star::protocol( "test", t2 ) );
+
+    test2->toJson("{\"bit\": 101, \"from\": \"127.0.0.1\", \"file_name\": \"test\", \"path\": [\"root\", \"test\"], \"data\": \"test\", \"customize\": []}");
+
+    test2->display();
 
     return 0;
 }

@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <string>
 #include <stack>
+#include <string>
 
 #include "../../modules/Scheduler/scheduler.h"
 #include "../../modules/db/database.h"
@@ -18,8 +18,8 @@ namespace star
 {
 
 static MSocket::ptr remote_sock;
-extern std::stack<void*> arg_ss;
-extern std::stack<MSocket::ptr> sock_ss;
+extern std::stack< void* > arg_ss;
+extern std::stack< MSocket::ptr > sock_ss;
 
 class tcpserver
 {
@@ -51,7 +51,7 @@ public:
 
 public:
     /* 阻塞线程等待连接 */
-    virtual void wait( void respond (), void* self );
+    virtual void wait( void respond(), void* self );
 
     /* 服务器关闭 */
     virtual void close();
@@ -60,13 +60,13 @@ public:
         接受消息
         *param remote_sock 必须是accept的socket
     */
-    virtual protocol::Protocol_Struct recv( MSocket::ptr remote_sock );
+    static protocol::ptr recv( MSocket::ptr remote_sock, size_t buffer_size );
 
     /*
         发送消息
         *patam ——remote_sock 必须是accept的socket
      */
-    virtual int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf );
+    static int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf, size_t buffer_size );
 
 protected:
     std::string m_name;              /* 服务器 */

@@ -2,6 +2,8 @@ add_rules("mode.debug", "mode.release")
 
 add_defines("Socket")
 
+add_packages("jsoncpp")
+
 target("socket")   
     set_kind("static")
     add_files("./*.cc")
