@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <iostream>
 #include <leveldb/db.h>
 #include <memory>
 #include <sqlite3.h>
@@ -135,6 +136,7 @@ public:
     : database( in_name, in_path )
     {
     }
+
     virtual ~levelDB()
     {
         /* 关闭数据库 */
@@ -163,8 +165,9 @@ public:
         return nullptr;
     }; /* 格式化数据库命令 */
 
-    void get_leveldbObj(leveldb::DB* copy)
+    void get_leveldbObj(leveldb::DB*& copy)
     {
+        //std::cout << this->m_db;
         copy = this->m_db;
     }
 

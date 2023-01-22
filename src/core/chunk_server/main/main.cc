@@ -12,15 +12,14 @@ star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
 int main()
 {
     cs.reset( ( new star::chunk_server( "./chunk_server_settins.json" ) ) );
-
+    cs->bind();
     /* 新建一个线程，等待连接 */
-    star::Threading::ptr new_thread( new star::Threading( run, "Server Thread" ) );
 
     INFO_STD_STREAM_LOG( global_logger ) << std::to_string( getTime() ) << " <----> "
                                          << "Server initialization completed."
                                          << "%n%0";
 
-    new_thread->join();
+    run();
 
     return 0;
 }

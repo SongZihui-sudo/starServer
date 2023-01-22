@@ -4,6 +4,7 @@
 #include "modules/socket/address.h"
 #include <cstddef>
 #include <string>
+#include <unistd.h>
 
 namespace star
 {
@@ -17,8 +18,8 @@ chunk_server::chunk_server( std::filesystem::path settins_path )
 {
     m_master.addr = this->m_settings->get( "master_server" )["address"].asString();
     m_master.port = this->m_settings->get( "master_server" )["port"].asInt();
-    this->m_db->open();
     print_logo();
+    this->m_db->open();
 }
 
 void chunk_server::respond()
@@ -74,9 +75,8 @@ void chunk_server::respond()
 
         switch ( cur.bit )
         {
-                /* 取出全部的chunk数据 */
+            /* 取出全部的chunk数据 */
             case 106:
-
                 self->updo_ss.push( cur );
                 self->get_all_meta_data( arr );
                 cur.bit  = 102;
@@ -91,6 +91,10 @@ void chunk_server::respond()
                 }
 
                 /* 发送数据 */
+                DEBUG_STD_STREAM_LOG( self->m_logger )
+                << remote_sock->getRemoteAddress()->toString() << "%n%0";
+
+                sleep(5);
                 tcpserver::send( remote_sock, cur );
                 break;
 
@@ -214,6 +218,9 @@ void chunk_server::respond()
                 /* 返回到上面的switch */
                 goto UPDO;
                 break;
+
+            default:
+                break;
         }
     }
     catch ( std::exception& e )
@@ -246,12 +253,9 @@ void chunk_server::delete_chunk( chunk_meta_data c_chunk )
 void chunk_server::get_all_meta_data( std::vector< chunk_meta_data >& arr )
 {
     /* 遍历leveldb数据库，取出全部的元数据，发送给 master server */
-    leveldb::DB* cur; 
-    INFO_STD_STREAM_LOG( this->m_logger ) << "bit 106"
-                                          << "%n%0";
+    leveldb::DB* cur;
     this->m_db->get_leveldbObj( cur );
     leveldb::Iterator* it = cur->NewIterator( leveldb::ReadOptions() );
-   
 
     for ( it->SeekToFirst(); it->Valid(); it->Next() )
     {

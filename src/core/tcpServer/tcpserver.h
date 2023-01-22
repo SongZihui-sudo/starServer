@@ -50,6 +50,9 @@ public:
     Status get_status() { return this->m_status; }
 
 public:
+    /* 绑定地址 */
+    virtual void bind();
+
     /* 阻塞线程等待连接 */
     virtual void wait( void respond(), void* self );
 

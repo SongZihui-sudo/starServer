@@ -1,6 +1,7 @@
 #include "./socket.h"
 #include "../log/log.h"
 
+#include <iostream>
 #include <limits.h>
 
 namespace star
@@ -192,6 +193,8 @@ bool MSocket::connect( const Address::ptr addr, uint64_t timeout_ms )
         }
     }
 
+    //DEBUG_STD_STREAM_LOG(g_logger) << m_remoteAddress->toString() << "%n%0";
+
     if ( STAR_UNLIKELY( addr->getFamily() != m_family ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
@@ -202,6 +205,7 @@ bool MSocket::connect( const Address::ptr addr, uint64_t timeout_ms )
 
     if ( timeout_ms == ( uint64_t )-1 )
     {
+        //DEBUG_STD_STREAM_LOG(g_logger) << addr->toString() << "%n%0";
         if ( ::connect( m_sock, addr->getAddr(), addr->getAddrLen() ) )
         {
             ERROR_STD_STREAM_LOG( g_logger )
@@ -392,6 +396,7 @@ Address::ptr MSocket::getRemoteAddress()
         UnixAddress::ptr addr = std::dynamic_pointer_cast< UnixAddress >( result );
         addr->setAddrLen( addrlen );
     }
+
     m_remoteAddress = result;
     return m_remoteAddress;
 }

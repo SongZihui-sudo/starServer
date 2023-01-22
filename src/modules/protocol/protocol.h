@@ -5,6 +5,7 @@
 #include "./JsonSerial.h"
 
 #include "json/config.h"
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -151,9 +152,14 @@ public:
         }
         */
         INFO_STD_STREAM_LOG( this->m_logger )
-        << "bit:" << S( this->m_protocol.bit )
-        << "\nfile name:" << this->m_protocol.file_name << "\nfile path："
-        << this->m_protocol.path << "\nfile data:" << this->m_protocol.data << "%n%0";
+        << "bit:" << S( this->m_protocol.bit ) << "\nfile name:" << this->m_protocol.file_name
+        << "\nfile path：" << this->m_protocol.path
+        << "\nfile data:" << this->m_protocol.data << "\nfrom: " << this->m_protocol.from
+        << "\npackage size: " << S( this->m_protocol.package_size ) << "%n%0";
+        for ( auto item : this->m_protocol.customize )
+        {
+            INFO_STD_STREAM_LOG( this->m_logger ) << item << "%n%0";
+        }
     }
 
     /* 设置协议结构体 */

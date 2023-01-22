@@ -9,6 +9,7 @@
 #include "../log/log.h"
 
 #include <functional>
+#include <iostream>
 #include <sstream>
 
 namespace star

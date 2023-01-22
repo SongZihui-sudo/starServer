@@ -42,34 +42,6 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
     this->m_name = this->m_settings->get( "ServerName" ).asString();
 
     this->m_logger.reset( STAR_NAME( "SERVER_LOGGER" ) );
-
-    const char* addr = new char[100];
-    strcpy( const_cast< char* >( addr ), this->m_settings->get( "server" )["address"].asCString() );
-
-    int port     = this->m_settings->get( "server" )["port"].asInt();
-    this->m_sock = MSocket::CreateTCPSocket(); /* 创建一个TCP Socket */
-
-    if ( this->m_settings->get( "AddressType" ).asString() == "IPv4" )
-    {
-        IPv4Address::ptr temp( new IPv4Address() );
-        temp = IPv4Address::Create( addr, port );
-        this->m_sock->bind( temp ); /* 绑定地址 */
-    }
-    else if ( this->m_settings->get( "AddressType" ).asString() == "IPv6" )
-    {
-        IPv6Address::ptr temp( new IPv6Address() );
-        temp = IPv6Address::Create( addr, port );
-        this->m_sock->bind( temp ); /* 绑定地址 */
-    }
-    else
-    {
-        ERROR_STD_STREAM_LOG( this->m_logger ) << "Unknown address type！"
-                                               << "%n%0";
-        return;
-    }
-
-    /* 释放内存 */
-    delete[] addr;
 }
 
 void tcpserver::wait( void respond(), void* self )
@@ -137,21 +109,19 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
     Json::String ready = buffer;
 
-    // std::cout << ready << "\n";
-
     /* 把缓冲区中读到的字符转换成为json格式 */
     if ( !protocoler->toJson( ready ) )
     {
         return nullptr;
     }
 
-    std::cout << protocoler->toStr() << std::endl;
-
     /* 把 json 反序列化成为结构体 */
     protocoler->Deserialize();
 
-    //protocoler->display();
-    // std::cout << "name:****************" << ret.file_name << std::endl;
+    std::cout << "****************** Get Message " << S( getTime() ) << "******************"
+              << std::endl;
+    protocoler->display();
+    std::cout << "*************************************************" << std::endl;
 
     delete[] buffer;
 
@@ -160,7 +130,6 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
 int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
 {
-    std::cout << "send message" << std::endl;
 
     protocol::ptr protocoler( new protocol( "send", buf ) );
 
@@ -168,12 +137,48 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
     protocoler->set_protocol_struct( buf );
     protocoler->Serialize();
 
+    std::cout << "******************** Send message " << S( getTime() )
+              << " **********************" << std::endl;
+    protocoler->display();
+    std::cout << "*************************************************" << std::endl;
+
     /* 获得序列化后的字符串 */
     std::string buffer = protocoler->toStr();
 
     int flag = remote_sock->send( buffer.c_str(), buffer.size() );
 
     return flag;
+}
+
+void tcpserver::bind()
+{
+    const char* addr = new char[100];
+    strcpy( const_cast< char* >( addr ), this->m_settings->get( "server" )["address"].asCString() );
+
+    int port     = this->m_settings->get( "server" )["port"].asInt();
+    this->m_sock = MSocket::CreateTCPSocket(); /* 创建一个TCP Socket */
+
+    if ( this->m_settings->get( "AddressType" ).asString() == "IPv4" )
+    {
+        IPv4Address::ptr temp( new IPv4Address() );
+        temp = IPv4Address::Create( addr, port );
+        this->m_sock->bind( temp ); /* 绑定地址 */
+    }
+    else if ( this->m_settings->get( "AddressType" ).asString() == "IPv6" )
+    {
+        IPv6Address::ptr temp( new IPv6Address() );
+        temp = IPv6Address::Create( addr, port );
+        this->m_sock->bind( temp ); /* 绑定地址 */
+    }
+    else
+    {
+        ERROR_STD_STREAM_LOG( this->m_logger ) << "Unknown address type！"
+                                               << "%n%0";
+        return;
+    }
+
+    /* 释放内存 */
+    delete[] addr;
 }
 
 }

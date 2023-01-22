@@ -36,6 +36,7 @@ master_server::master_server( std::filesystem::path settings_path )
         }
 
         this->print_logo();
+        this->m_db->open();
     }
     catch ( std::exception e )
     {
@@ -193,29 +194,6 @@ void master_server::respond()
                 }
 
                 tcpserver::send( remote_sock, cur );
-                break;
-
-            /* 接受块的元数据 */
-            case 102:
-                pthread_mutex_lock( &mutex );
-
-                self->updo_ss.push( cur );
-
-                while ( i < cur.customize.size() )
-                {
-                    meta_data_tab[cur.customize[j]].chunk_list.clear();
-                    meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
-                    meta_data_tab[cur.customize[j]].f_path = cur.customize[i++];
-                    meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i++] );
-                    meta_data_tab[cur.customize[j]].num_chunk++;
-                    got_chunk.from  = cur.from;
-                    got_chunk.port  = std::stoi( cur.path );
-                    got_chunk.index = std::stoi( cur.customize[i++] );
-                    meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
-                    j++;
-                }
-
-                pthread_mutex_unlock( &mutex );
                 break;
 
             /* 客户端上传文件 */
@@ -435,6 +413,9 @@ void master_server::respond()
                 /* 返回到上面的switch */
                 goto UPDO;
                 break;
+
+            default:
+                break;
         }
         remote_sock->close();
     }
@@ -547,17 +528,56 @@ void master_server::ask_chunk_meta_data()
     for ( auto item : this->chunk_server_list )
     {
         star::IPv4Address::ptr addr = star::IPv4Address::Create( item.addr.c_str(), item.port );
-        star::MSocket::ptr sock     = star::MSocket::CreateTCP( addr );
 
-        if ( !sock->connect( addr ) )
+        // sock->bind( addr );
+
+        if ( !this->m_sock->connect( addr ) )
         {
             return;
         }
-        tcpserver::send( sock, t );
+        tcpserver::send( this->m_sock, t );
 
-        sock->close();
+        DEBUG_STD_STREAM_LOG( this->m_logger ) << this->m_sock->getLocalAddress()->toString() << "%n%0";
+
+        protocol::ptr current_procotol = tcpserver::recv( this->m_sock, this->buffer_size );
+
+        /* 看是否接受成功 */
+        if ( !current_procotol )
+        {
+            FATAL_STD_STREAM_LOG( this->m_logger ) << "%D"
+                                                   << "Receive Message Error"
+                                                   << "%n%0";
+        }
+
+        protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
+        chunk_meta_data got_chunk;
+
+        /* 接受块的元数据 */
+        if ( cur.bit == 102 )
+        {
+            this->updo_ss.push( cur );
+            int j = 0;
+            int i = 0;
+
+            while ( i < cur.customize.size() )
+            {
+                meta_data_tab[cur.customize[j]].chunk_list.clear();
+                meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
+                meta_data_tab[cur.customize[j]].f_path = cur.customize[i++];
+                meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i++] );
+                meta_data_tab[cur.customize[j]].num_chunk++;
+                got_chunk.from  = cur.from;
+                got_chunk.port  = std::stoi( cur.path );
+                got_chunk.index = std::stoi( cur.customize[i++] );
+                meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
+                j++;
+            }
+        }
+
+        this->m_sock->close();
     }
 }
+
 }
 
 #include "../../modules/setting/setting.cc"
