@@ -19,6 +19,11 @@
         "stopAtEntry": false,
         "setupCommands": [
             {
+                "description": "防止gdb打开标准库函数",
+                "text": "-interpreter-exec console \"skip -rfu std::.*\"",
+                "ignoreFailures": false
+            },
+            {
                 "description": "为 gdb 启用整齐打印",
                 "text": "-enable-pretty-printing",
                 "ignoreFailures": true

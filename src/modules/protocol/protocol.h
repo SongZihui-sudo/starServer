@@ -20,13 +20,24 @@ public:
 
     struct Protocol_Struct
     {
-        int bit;                         /* 标识 */
-        std::string from;                /* 请求者ip */
-        std::string file_name;           /* 文件名 */
-        std::vector< std::string > path; /* 路径 */
-        size_t package_size;             /* 大小 */
-        std::string data;                /* 文件内容 */
-        std::vector< void* > customize; /* 自定义内容，内容只可以是原始类型 */
+        int bit;                              /* 标识 */
+        std::string from;                     /* 请求者ip */
+        std::string file_name;                /* 文件名 */
+        std::string path;                     /* 路径 */
+        size_t package_size;                  /* 大小 */
+        std::string data;                     /* 文件内容 */
+        std::vector< std::string > customize; /* 自定义内容 */
+
+        void clear()
+        {
+            bit = 0;
+            from.clear();
+            file_name.clear();
+            path.clear();
+            package_size = 0;
+            data.clear();
+            customize.clear();
+        }
     };
 
 public:
@@ -71,7 +82,7 @@ public:
 #define XX( name )                                                                         \
     deserialize( js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data );
         /* 把结构体转成 json */
-        if ( !this->js->get().isMember( "customize" ) )
+        if ( !this->js->get().isMember( "customize" ) || this->m_protocol.customize.empty() )
         {
             XX( this->m_protocol );
         }
@@ -123,7 +134,7 @@ public:
             return false;
         }
 
-        this->js->set(tree);
+        this->js->set( tree );
 
         return true;
     }
@@ -132,14 +143,24 @@ public:
 
     void display()
     {
-        Json::Value::Members mem = js->get().getMemberNames();
+        /*
+         Json::Value::Members mem = js->get().getMemberNames();
         for ( auto iter = mem.begin(); iter != mem.end(); iter++ )
         {
             std::cout << *iter << ":" << js->get()[*iter];
         }
+        */
+        INFO_STD_STREAM_LOG( this->m_logger )
+        << "bit:" << S( this->m_protocol.bit )
+        << "\nfile name:" << this->m_protocol.file_name << "\nfile path："
+        << this->m_protocol.path << "\nfile data:" << this->m_protocol.data << "%n%0";
     }
 
+    /* 设置协议结构体 */
     void set_protocol_struct( Protocol_Struct in_struct ) { this->m_protocol = in_struct; }
+
+    /* 获取协议结构体 */
+    Protocol_Struct get_protocol_struct() { return this->m_protocol; }
 
 private:
     Protocol_Struct m_protocol; /* 协议 */

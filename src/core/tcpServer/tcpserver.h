@@ -66,7 +66,7 @@ public:
         发送消息
         *patam ——remote_sock 必须是accept的socket
      */
-    static int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf, size_t buffer_size );
+    static int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf );
 
 protected:
     std::string m_name;              /* 服务器 */

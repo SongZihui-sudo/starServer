@@ -1,0 +1,17 @@
+{
+    "server": {
+        "address": "127.0.0.1",
+        "port": 7000
+    },
+    "chunk_server": [
+        {
+            "address": "127.0.0.1",
+            "port": 7001
+        }
+    ],
+    "AddressType": "IPv4",
+    "DBpath": "./Master_DB",
+    "DBname": "Master_DB",
+    "BUffer_size": 4096,
+    "Max_connects": 100
+}

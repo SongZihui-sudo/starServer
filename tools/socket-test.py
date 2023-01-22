@@ -4,6 +4,7 @@
 
 import socket
 import json
+import time
 
 
 def read_json(path: str) :
@@ -47,7 +48,8 @@ class MSocket:
     def recv(self, buflen: int = 1024) -> str:
         buf: str = None
         buf = str(self.remote_sock.recv(buflen).decode("utf-8"))
-        print("Get msg %s from %s" % (buf, self.addr))
+        if buf:
+            print("Get msg %s from %s" % (buf, self.addr))
         return buf
 
     def close(self):
@@ -63,6 +65,7 @@ class MSocket:
         while True:
             buf = self.recv()
             if buf:
+                time.sleep(2)
                 self.send("Receive OK! what: %s" % buf)
             elif buf == "end":
                 self.close()

@@ -3,13 +3,17 @@
 
 #include "core/tcpServer/tcpserver.h"
 #include "modules/log/log.h"
+#include "modules/protocol/protocol.h"
+#include "modules/socket/socket.h"
 
+#include <cstddef>
 #include <cstdint>
-#include <star.h>
+#include <filesystem>
 #include <map>
+#include <stack>
+#include <star.h>
 #include <string>
 #include <vector>
-#include <filesystem>
 
 namespace star
 {
@@ -19,30 +23,34 @@ namespace star
 class master_server : public tcpserver
 {
 protected:
+    /*
+        chunk server 信息
+     */
     struct chunk_server_info
     {
-        std::string addr;
-        std::int64_t port;
+        size_t space;      /* 存储空间 */
+        std::string addr;  /* ip 地址 */
+        std::int64_t port; /* 端口 */
     };
 
 public:
     typedef std::shared_ptr< master_server > ptr;
 
-    master_server(std::filesystem::path settings_path);
+    master_server( std::filesystem::path settings_path );
     virtual ~master_server() = default;
 
 public:
+    /* 向 chunk server 询问 块元数据 */
+    virtual void ask_chunk_meta_data();
+
     /* 查找指定文件的元数据信息 */
-    virtual bool find_file_meta_data( file_meta_data& data, std::string f_name );
+    virtual bool find_file_meta_data( file_meta_data& data, std::string f_name, std::string f_path );
 
     /* 查找 chunk 的元数据信息 */
     virtual bool find_chunk_meta_data( std::string f_name, int index, chunk_meta_data& data );
 
     /* 划分chunk */
-    virtual void Split_file( std::string f_name,
-                             const char* f_data,
-                             std::string path,
-                             std::map< std::string, file_meta_data >& meta_data_tab );
+    virtual void Split_file( std::string f_name, const char* f_data, std::string path );
 
 public:
     /* 用户登录认证 */
@@ -53,9 +61,8 @@ public:
 
     /* 响应连接 */
     static void respond();
-    
-protected:
 
+protected:
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );
 
@@ -73,9 +80,9 @@ protected:
     }
 
 private:
-    size_t max_chunk_size;                                 /* chunk 的最大大小  */
-    std::map< std::string, file_meta_data > meta_data_tab; /* 元数据表 */
-    std::vector< chunk_server_info > chunk_server_list;    /* chunk server 信息 */
+    size_t max_chunk_size;                              /* chunk 的最大大小  */
+    std::vector< chunk_server_info > chunk_server_list; /* chunk server 信息 */
+    std::stack< protocol::Protocol_Struct > updo_ss; /* 上一步，进一步可以拓展为快照 */
 };
 }
 

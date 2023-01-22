@@ -1,15 +1,20 @@
 #include "../master_server.h"
 
+#include <functional>
 #include <star.h>
 #include <string>
-#include <functional>
 
 /* 服务器对象 */
 star::master_server::ptr cs;
 
 star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
 
-void run() { cs->wait( cs->respond, cs.get() ); }
+void run()
+{
+    /* 询问块的信息 */
+    cs->ask_chunk_meta_data();
+    cs->wait( cs->respond, cs.get() );
+}
 
 /*
     Chunk 服务器

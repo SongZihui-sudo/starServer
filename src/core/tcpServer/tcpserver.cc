@@ -10,6 +10,7 @@
 #include <exception>
 #include <filesystem>
 #include <functional>
+#include <iostream>
 
 namespace star
 {
@@ -40,13 +41,12 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
 
     this->m_name = this->m_settings->get( "ServerName" ).asString();
 
-    this->m_logger.reset( STAR_NAME( "MASTER_SERVER_LOGGER" ) );
+    this->m_logger.reset( STAR_NAME( "SERVER_LOGGER" ) );
 
     const char* addr = new char[100];
-    strcpy( const_cast< char* >( addr ),
-            this->m_settings->get( "master_server" )["address"].asCString() );
+    strcpy( const_cast< char* >( addr ), this->m_settings->get( "server" )["address"].asCString() );
 
-    int port     = this->m_settings->get( "master_server" )["port"].asInt();
+    int port     = this->m_settings->get( "server" )["port"].asInt();
     this->m_sock = MSocket::CreateTCPSocket(); /* 创建一个TCP Socket */
 
     if ( this->m_settings->get( "AddressType" ).asString() == "IPv4" )
@@ -129,6 +129,7 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 {
     protocol::Protocol_Struct ret;
     protocol::ptr protocoler( new protocol( "recv", ret ) );
+    protocoler->Serialize();
 
     /* 初始化缓冲区 */
     char* buffer = new char[buffer_size];
@@ -136,26 +137,31 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
     Json::String ready = buffer;
 
-    std::cout << ready << "\n";
-    
+    // std::cout << ready << "\n";
+
     /* 把缓冲区中读到的字符转换成为json格式 */
-    if(!protocoler->toJson( ready ))
+    if ( !protocoler->toJson( ready ) )
     {
         return nullptr;
     }
 
-    protocoler->display();
-    
+    std::cout << protocoler->toStr() << std::endl;
+
     /* 把 json 反序列化成为结构体 */
     protocoler->Deserialize();
 
+    //protocoler->display();
+    // std::cout << "name:****************" << ret.file_name << std::endl;
+
     delete[] buffer;
-    
+
     return protocoler;
 }
 
-int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf, size_t buffer_size )
+int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
 {
+    std::cout << "send message" << std::endl;
+
     protocol::ptr protocoler( new protocol( "send", buf ) );
 
     /* 序列化结构体 */
@@ -163,12 +169,10 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf, si
     protocoler->Serialize();
 
     /* 获得序列化后的字符串 */
-    const char* buffer = new char[buffer_size];
-    protocoler->toCStr( buffer );
+    std::string buffer = protocoler->toStr();
 
-    int flag = remote_sock->send( buffer, buffer_size );
+    int flag = remote_sock->send( buffer.c_str(), buffer.size() );
 
-    delete[] buffer;
     return flag;
 }
 

@@ -1,6 +1,7 @@
 #ifndef META_DATA_H
 #define META_DATA_H
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,15 @@ struct file_meta_data
     size_t f_size;                             /* 文件大小 */
     size_t num_chunk;                          /* 文件块数 */
     std::string f_path;                        /* 文件路径 */
+
+    file_meta_data() {}
+
+    file_meta_data( std::string user, std::string f_name, size_t f_size, std::string path )
+    {
+        this->f_name = f_name;
+        this->f_path = path;
+        this->f_size = f_size;
+    }
 
     protocol::Protocol_Struct toProrocol()
     {
