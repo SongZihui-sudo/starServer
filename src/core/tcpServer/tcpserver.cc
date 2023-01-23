@@ -17,6 +17,7 @@ namespace star
 
 std::stack< void* > arg_ss;
 std::stack< MSocket::ptr > sock_ss;
+static Logger::ptr g_logger( STAR_NAME( "global_logger" ) );
 
 tcpserver::tcpserver( std::filesystem::path settings_path )
 {
@@ -118,10 +119,12 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
     /* 把 json 反序列化成为结构体 */
     protocoler->Deserialize();
 
-    std::cout << "****************** Get Message " << S( getTime() ) << "******************"
-              << std::endl;
+    INFO_STD_STREAM_LOG( g_logger )
+    << "****************** Get Message " << S( getTime() ) << " ******************"
+    << "%n%0";
     protocoler->display();
-    std::cout << "*************************************************" << std::endl;
+    INFO_STD_STREAM_LOG( g_logger ) << "*************************************************"
+                                    << "%n%0";
 
     delete[] buffer;
 
@@ -137,10 +140,12 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
     protocoler->set_protocol_struct( buf );
     protocoler->Serialize();
 
-    std::cout << "******************** Send message " << S( getTime() )
-              << " **********************" << std::endl;
+    INFO_STD_STREAM_LOG( g_logger )
+    << "****************** Send Message " << S( getTime() ) << " ******************"
+    << "%n%0";
     protocoler->display();
-    std::cout << "*************************************************" << std::endl;
+    INFO_STD_STREAM_LOG( g_logger ) << "*************************************************"
+                                    << "%n%0";
 
     /* 获得序列化后的字符串 */
     std::string buffer = protocoler->toStr();

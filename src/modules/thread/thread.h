@@ -67,7 +67,7 @@ public:
     void exit();
 
     /* 获取信号量 */
-    sem_t get_sem() { return this->m_sem; }
+    //sem_t get_sem() { return this->m_sem; }
 
     /* 获取执行函数 */
     std::function< void() > get_func() { return this->func; }
@@ -107,7 +107,7 @@ private:
     std::string m_name;           /* 线程名 */
     pthread_t m_thread;           /* 线程 */
     std::function< void() > func; /* 线程执行函数 */
-    sem_t m_sem;                  /* 信号量 */
+    //sem_t m_sem;                  /* 信号量 */
     star::Logger::ptr t_logger;   /* 日志器 */
 };
 }

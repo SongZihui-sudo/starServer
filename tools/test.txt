@@ -1,0 +1,3 @@
+GNU is a free software operating system-that is, it respects the freedom of its users. 
+GNU operating system includes GNU software packages (programs specially released by GNU Project) and free software released by third parties. 
+The development of GNU enables you to use a computer without installing software that may infringe your freedom.

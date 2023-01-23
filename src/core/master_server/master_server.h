@@ -83,6 +83,7 @@ private:
     size_t max_chunk_size;                              /* chunk 的最大大小  */
     std::vector< chunk_server_info > chunk_server_list; /* chunk server 信息 */
     std::stack< protocol::Protocol_Struct > updo_ss; /* 上一步，进一步可以拓展为快照 */
+    bool is_login = false;
 };
 }
 

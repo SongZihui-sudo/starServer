@@ -61,6 +61,7 @@ void chunk_server::respond()
 
         /* switch 中 用到的变量 */
         chunk_meta_data got_chunk;
+        chunk_meta_data temp_chunk;
         std::vector< chunk_meta_data > arr;
         int port = self->m_settings->get( "server" )["port"].asInt();
         std::string file_name;
@@ -79,9 +80,10 @@ void chunk_server::respond()
             case 106:
                 self->updo_ss.push( cur );
                 self->get_all_meta_data( arr );
-                cur.bit  = 102;
-                cur.from = self->m_sock->getLocalAddress()->toString();
-                cur.path = std::to_string( port );
+                cur.bit       = 102;
+                cur.file_name = "All chunk Meta Data";
+                cur.from      = self->m_sock->getLocalAddress()->toString();
+                cur.path      = std::to_string( port );
                 for ( auto item : arr )
                 {
                     cur.customize.push_back( item.f_name );
@@ -130,10 +132,13 @@ void chunk_server::respond()
                 got_chunk.index  = index;
 
                 self->get_chunk( got_chunk, data );
+                temp_chunk           = got_chunk;
+                got_chunk.f_path     = file_new_path;
                 got_chunk.data       = data.c_str();
                 got_chunk.chunk_size = data.size();
                 got_chunk.port       = port;
                 got_chunk.from       = self->m_sock->getLocalAddress()->toString();
+                self->delete_chunk( temp_chunk );
 
                 /* 重新写一个键值 */
                 self->write_chunk( got_chunk );
@@ -202,18 +207,21 @@ void chunk_server::respond()
 
                 cur.clear();
 
-                cur.bit       = 115;
-                cur.file_name = got_chunk.f_name;
-                cur.path      = got_chunk.f_path;
+                cur.bit          = 115;
+                cur.file_name    = got_chunk.f_name;
+                cur.path         = got_chunk.f_path;
+                cur.data         = data;
+                cur.package_size = data.size();
                 cur.customize.push_back( std::to_string( got_chunk.index ) );
 
                 tcpserver::send( remote_sock, cur );
 
                 break;
 
-            /* 取出栈顶的协议结构体，重新执行上一操作 */
+            /* 执行上一步相同的操作 */
             case 123:
                 cur = self->updo_ss.top();
+                self->updo_ss.pop();
                 /* 返回到上面的switch */
                 goto UPDO;
                 break;
@@ -231,21 +239,21 @@ void chunk_server::respond()
 void chunk_server::get_chunk( chunk_meta_data c_chunk, std::string& data )
 {
     /* 拼出 chunk 的 key 值 */
-    std::string key = c_chunk.f_path + "%" + c_chunk.f_name + "%" + std::to_string( c_chunk.index );
+    std::string key = c_chunk.f_path + "|" + c_chunk.f_name + "|" + std::to_string( c_chunk.index );
     this->m_db->Get( key, data );
 }
 
 void chunk_server::write_chunk( chunk_meta_data c_chunk )
 {
     /* 拼出 chunk 的 key 值 */
-    std::string key = c_chunk.f_path + "%" + c_chunk.f_name + "%" + std::to_string( c_chunk.index );
+    std::string key = c_chunk.f_path + "|" + c_chunk.f_name + "|" + std::to_string( c_chunk.index );
     this->m_db->Put( key, c_chunk.data ); /* 写入数据 */
 }
 
 void chunk_server::delete_chunk( chunk_meta_data c_chunk )
 {
     /* 拼出 chunk 的 key 值 */
-    std::string key = c_chunk.f_path + "%" + c_chunk.f_name + "%" + std::to_string( c_chunk.index );
+    std::string key = c_chunk.f_path + "|" + c_chunk.f_name + "|" + std::to_string( c_chunk.index );
     this->m_db->Delete( key );
 }
 
@@ -258,7 +266,8 @@ void chunk_server::get_all_meta_data( std::vector< chunk_meta_data >& arr )
 
     for ( it->SeekToFirst(); it->Valid(); it->Next() )
     {
-        // std::cout << it->key().ToString() << ": " << it->value().ToString() << std::endl;
+        DEBUG_STD_STREAM_LOG( this->m_logger )
+        << it->key().ToString() << ": " << it->value().ToString() << "%n%0";
         /* 分割 key */
         std::string temp = it->key().ToString();
         std::string buf  = "";
@@ -267,7 +276,7 @@ void chunk_server::get_all_meta_data( std::vector< chunk_meta_data >& arr )
         chunk_meta_data current;
         while ( i < temp.size() )
         {
-            if ( temp[i] == '%' )
+            if ( temp[i] == '|' )
             {
                 switch ( j )
                 {
@@ -293,7 +302,14 @@ void chunk_server::get_all_meta_data( std::vector< chunk_meta_data >& arr )
                 i++;
             }
         }
+
+        if ( !buf.empty() )
+        {
+            current.index = std::stoi( buf );
+        }
+
         // current.data = it->value().ToString().c_str();
+        current.chunk_size = it->value().ToString().size();
         arr.push_back( current );
     }
 }

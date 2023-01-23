@@ -7,6 +7,7 @@
 #include "modules/socket/socket.h"
 
 #include "json/value.h"
+#include <asm-generic/errno.h>
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -186,6 +187,7 @@ void master_server::respond()
         bool flag;
         int package_num;
         int gap;
+
     UPDO:
         /* 判断 */
         switch ( cur.bit )
@@ -195,17 +197,25 @@ void master_server::respond()
                 self->updo_ss.push( cur );
                 file_name = cur.file_name;
                 file_path = cur.path;
-                self->find_file_meta_data( got_file, file_name, file_path );
+                flag      = self->find_file_meta_data( got_file, file_name, file_path );
+                cur.clear();
                 cur.bit       = 107;
                 cur.from      = self->m_sock->getLocalAddress()->toString();
                 cur.file_name = file_name;
-                cur.path      = cur.path;
-                cur.customize.clear();
-                for ( auto item : meta_data_tab[file_name].chunk_list )
+                cur.path      = file_path;
+                if ( flag )
                 {
-                    cur.customize.push_back( item.from );
-                    cur.customize.push_back( std::to_string( item.port ) );
-                    cur.customize.push_back( std::to_string( item.index ) );
+                    cur.data = "File Find!";
+                    for ( auto item : meta_data_tab[file_name].chunk_list )
+                    {
+                        cur.customize.push_back( item.from );
+                        cur.customize.push_back( std::to_string( item.port ) );
+                        cur.customize.push_back( std::to_string( item.index ) );
+                    }
+                }
+                else
+                {
+                    cur.data = "File Not Find!";
                 }
 
                 tcpserver::send( remote_sock, cur );
@@ -213,12 +223,13 @@ void master_server::respond()
 
             /* 客户端上传文件 */
             case 104:
+                // pthread_mutex_lock( &mutex );
                 file_name   = cur.file_name;
                 file_path   = cur.path;
                 data        = cur.data;
                 package_num = std::stoi( cur.customize[0] ) - 1;
 
-                // DEBUG_STD_STREAM_LOG( self->m_logger ) << S( cur.bit ) << "%n%0";
+                DEBUG_STD_STREAM_LOG( self->m_logger ) << S( cur.bit ) << "%n%0";
 
                 /* 继续接受后面的包 */
                 if ( package_num > 0 )
@@ -240,7 +251,7 @@ void master_server::respond()
                         data += cur.data;
                     }
                 }
-                
+
                 /* 分割文件块 */
                 self->Split_file( file_name, data.c_str(), file_path );
 
@@ -267,11 +278,12 @@ void master_server::respond()
                         meta_data_tab[file_name].chunk_list[i].from = item.addr;
                         meta_data_tab[file_name].chunk_list[i].from = item.port;
                         cur.clear();
-                        cur.bit       = 108;
-                        cur.from      = self->m_sock->getLocalAddress()->toString();
-                        cur.file_name = meta_data_tab[file_name].f_name;
-                        cur.path      = meta_data_tab[file_name].f_path;
-                        cur.data      = meta_data_tab[file_name].chunk_list[i].data;
+                        cur.bit          = 108;
+                        cur.from         = self->m_sock->getLocalAddress()->toString();
+                        cur.file_name    = meta_data_tab[file_name].f_name;
+                        cur.path         = meta_data_tab[file_name].f_path;
+                        cur.data         = meta_data_tab[file_name].chunk_list[i].data;
+                        cur.package_size = cur.data.size();
                         cur.customize.push_back( std::to_string( i ) );
 
                         tcpserver::send( sock, cur );
@@ -310,6 +322,8 @@ void master_server::respond()
                     sock->close();
                 }
 
+                // pthread_mutex_unlock( &mutex );
+
                 try
                 {
                     cur.clear();
@@ -320,15 +334,15 @@ void master_server::respond()
                     cur.data      = "true";
 
                     tcpserver::send( remote_sock, cur );
-                    //sleep( 5 );
-                    
+                    // sleep( 5 );
                 }
                 catch ( std::exception& e )
                 {
                     throw e.what();
                 }
-                
+
                 break;
+
             /* 修改文件路径 */
             case 117:
                 pthread_mutex_lock( &mutex );
@@ -340,6 +354,9 @@ void master_server::respond()
 
                 meta_data_tab[file_name].f_path = file_new_path;
                 got_file                        = meta_data_tab[file_name];
+
+                DEBUG_STD_STREAM_LOG( self->m_logger ) << "ok"
+                                                       << "%n%0";
 
                 for ( auto item : got_file.chunk_list )
                 {
@@ -436,11 +453,33 @@ void master_server::respond()
                 tcpserver::send( remote_sock, cur );
                 break;
 
-            /* 取出栈顶的协议结构体，重新执行上一操作 */
+            /* 执行上一步相同的操作 */
             case 123:
                 cur = self->updo_ss.top();
+                self->updo_ss.pop();
                 /* 返回到上面的switch */
                 goto UPDO;
+                break;
+
+            /*
+                客户端请求已经上传的文件元数据
+                包含 文件名，路径
+            */
+            case 126:
+                cur.clear();
+                cur.bit       = 127;
+                cur.file_name = "All file Meta data";
+                cur.from      = self->m_sock->getLocalAddress()->toString();
+                cur.data      = "None";
+                for ( auto item : meta_data_tab )
+                {
+                    cur.customize.push_back( item.second.f_name );
+                    cur.customize.push_back( item.second.f_path );
+                }
+
+                /* 给客户端返回消息 */
+                tcpserver::send( remote_sock, cur );
+
                 break;
 
             default:
@@ -511,12 +550,21 @@ std::string master_server::encrypt_pwd( std::string pwd )
 
 bool master_server::login( std::string user_name, std::string pwd )
 {
-    std::string got_pwd = nullptr;
+    std::string got_pwd;
+
     this->m_db->Get( user_name, got_pwd );
-    if ( got_pwd == pwd )
+
+    std::string encrypted = master_server::encrypt_pwd( pwd );
+    DEBUG_STD_STREAM_LOG( this->m_logger ) << "encrypted password: " << encrypted << "%n%d";
+
+    if ( got_pwd == encrypted )
     {
-        INFO_STD_STREAM_LOG( this->m_logger ) << "user: " << user_name << "Login success！"
+        INFO_STD_STREAM_LOG( this->m_logger ) << "user: " << user_name << " "
+                                              << "Login success！"
                                               << "%n%0";
+
+        this->is_login = true;
+
         return true;
     }
 
@@ -529,7 +577,10 @@ bool master_server::login( std::string user_name, std::string pwd )
 bool master_server::regist( std::string user_name, std::string pwd )
 {
     std::string encrypted = master_server::encrypt_pwd( pwd );
-    std::string temp      = "";
+
+    // DEBUG_STD_STREAM_LOG( this->m_logger ) << "encrypted password: " << encrypted << "%n%d";
+
+    std::string temp = "";
 
     this->m_db->Get( user_name, temp );
     if ( temp.empty() )
@@ -592,13 +643,25 @@ void master_server::ask_chunk_meta_data()
             while ( i < cur.customize.size() )
             {
                 meta_data_tab[cur.customize[j]].chunk_list.clear();
+
                 meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
-                meta_data_tab[cur.customize[j]].f_path = cur.customize[i++];
-                meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i++] );
+                i                                      = i + 1;
+
+                meta_data_tab[cur.customize[j]].f_path = cur.customize[i];
+                i                                      = i + 1;
+
+                meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i] );
+                i = i + 1;
+
                 meta_data_tab[cur.customize[j]].num_chunk++;
-                got_chunk.from  = cur.from;
+
+                size_t index = cur.from.find( ':' );
+                cur.from = cur.from.substr( 0, index ); /* 把 ： 后的端口号去掉 */
+                got_chunk.from = cur.from;
+
                 got_chunk.port  = std::stoi( cur.path );
                 got_chunk.index = std::stoi( cur.customize[i++] );
+
                 meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
                 j++;
             }

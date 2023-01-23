@@ -134,7 +134,7 @@ public:
     virtual void run();
 
     /* 获取信号量 */
-    sem_t get_sem() { return m_thread->get_sem(); }
+    //sem_t get_sem() { return m_thread->get_sem(); }
 
     /* 动态调度 */
     void manage();

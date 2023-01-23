@@ -111,7 +111,7 @@ void* Threading::run( void* arg )
     }
 
     thread->m_status = FREE;
-    sem_post( &thread->m_sem );
+    //sem_post( &thread->m_sem );
 
     return nullptr;
 }
