@@ -94,7 +94,6 @@ void chunk_server::respond()
                 DEBUG_STD_STREAM_LOG( self->m_logger )
                 << remote_sock->getRemoteAddress()->toString() << "%n%0";
 
-                sleep(5);
                 tcpserver::send( remote_sock, cur );
                 break;
 

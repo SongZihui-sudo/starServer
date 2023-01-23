@@ -16,7 +16,7 @@ struct chunk_meta_data
 {
     std::string f_name; /* 文件名 */
     size_t index;       /* 索引 */
-    const char* data;   /* 数据 */
+    std::string data;   /* 数据 */
     std::string f_path; /* 文件路径 */
     size_t chunk_size;  /* chunk 大小 */
     std::string from;   /* 所在的 chunk server */
@@ -24,7 +24,7 @@ struct chunk_meta_data
 
     chunk_meta_data( std::string f_name,
                      size_t index,
-                     const char* data,
+                     std::string data,
                      std::string path,
                      size_t chunk_size,
                      std::string from,

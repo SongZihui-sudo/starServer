@@ -34,7 +34,7 @@ int main()
 
     test2->toJson(
     "{\"bit\": 101, \"from\": \"127.0.0.1\", \"file_name\": \"test\", \"path\": \"root\", "
-    "\"data\": \"test\", \"customize\": []}" );
+    "\"data\": \"test\",\"package_size\" : 1000, \"customize\": []}" );
 
     test2->Deserialize();
 

@@ -1,11 +1,11 @@
 {
-    "bit": 101,
-    "from": "127.0.0.1",
+    "bit": 104,
+    "from": "127.0.0.1:7002",
     "file_name": "test",
-    "path": [
-        "root",
-        "test"
+    "path": "root",
+    "data": "testasdasdwqeqweasdsad",
+    "customize": [
+        "1"
     ],
-    "data": "test",
-    "customize": []
+    "package_size": 100
 }

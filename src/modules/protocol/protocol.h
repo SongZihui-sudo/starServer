@@ -25,7 +25,7 @@ public:
         std::string from;                     /* 请求者ip */
         std::string file_name;                /* 文件名 */
         std::string path;                     /* 路径 */
-        size_t package_size;                  /* 大小 */
+        int package_size;                     /* 大小 */
         std::string data;                     /* 文件内容 */
         std::vector< std::string > customize; /* 自定义内容 */
 
@@ -56,50 +56,26 @@ public:
     void Serialize()
     {
 #define XX( name )                                                                         \
-    serialize( js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data );
+    serialize(                                                                             \
+    js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data, name.customize );
         /* 把结构体转成 json */
-        if ( this->m_protocol.customize.empty() )
-        {
-            XX( this->m_protocol );
-        }
+
+        XX( this->m_protocol );
 
 #undef XX
-        else
-        {
-            serialize( js,
-                       this->m_protocol.bit,
-                       this->m_protocol.from,
-                       this->m_protocol.file_name,
-                       this->m_protocol.path,
-                       this->m_protocol.package_size,
-                       this->m_protocol.data,
-                       this->m_protocol.customize );
-        }
     }
 
     /* 反序列化 */
     void Deserialize()
     {
 #define XX( name )                                                                         \
-    deserialize( js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data );
+    deserialize(                                                                           \
+    js, name.bit, name.from, name.file_name, name.path, name.package_size, name.data, name.customize );
         /* 把结构体转成 json */
-        if ( !this->js->get().isMember( "customize" ) || this->m_protocol.customize.empty() )
-        {
-            XX( this->m_protocol );
-        }
+
+        XX( this->m_protocol );
 
 #undef XX
-        else
-        {
-            deserialize( js,
-                         this->m_protocol.bit,
-                         this->m_protocol.from,
-                         this->m_protocol.file_name,
-                         this->m_protocol.path,
-                         this->m_protocol.package_size,
-                         this->m_protocol.data,
-                         this->m_protocol.customize );
-        }
     }
 
     /* 把 json 转换成 string */
@@ -155,10 +131,13 @@ public:
         << "bit:" << S( this->m_protocol.bit ) << "\nfile name:" << this->m_protocol.file_name
         << "\nfile path：" << this->m_protocol.path
         << "\nfile data:" << this->m_protocol.data << "\nfrom: " << this->m_protocol.from
-        << "\npackage size: " << S( this->m_protocol.package_size ) << "%n%0";
+        << "\npackage size: " << S( this->m_protocol.package_size ) << "\nCustomize Info: "
+        << "%n%0";
+        int i = 0;
         for ( auto item : this->m_protocol.customize )
         {
-            INFO_STD_STREAM_LOG( this->m_logger ) << item << "%n%0";
+            INFO_STD_STREAM_LOG( this->m_logger ) << "Customize[" << S( i ) << "]: " << item << "%n%0";
+            i++;
         }
     }
 
