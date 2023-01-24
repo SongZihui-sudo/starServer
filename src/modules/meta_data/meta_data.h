@@ -59,15 +59,6 @@ struct file_meta_data
         this->f_path = path;
         this->f_size = f_size;
     }
-
-    protocol::Protocol_Struct toProrocol()
-    {
-        protocol::Protocol_Struct ret;
-
-        /* 把元数据转换成为协议结构体 */
-
-        return ret;
-    }
 };
 
 }

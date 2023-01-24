@@ -107,8 +107,6 @@ void chunk_server::respond()
                 got_chunk.data       = cur.data.c_str();
                 got_chunk.index      = std::stoi( cur.customize[0] );
                 got_chunk.chunk_size = cur.data.size();
-                got_chunk.from       = self->m_sock->getLocalAddress()->toString();
-                got_chunk.port       = port;
                 self->write_chunk( got_chunk );
 
                 cur.clear();

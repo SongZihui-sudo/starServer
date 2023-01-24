@@ -49,9 +49,6 @@ public:
     /* 查找 chunk 的元数据信息 */
     virtual bool find_chunk_meta_data( std::string f_name, int index, chunk_meta_data& data );
 
-    /* 划分chunk */
-    virtual void Split_file( std::string f_name, const char* f_data, std::string path );
-
 public:
     /* 用户登录认证 */
     bool login( std::string user_name, std::string pwd );
@@ -84,6 +81,7 @@ private:
     std::vector< chunk_server_info > chunk_server_list; /* chunk server 信息 */
     std::stack< protocol::Protocol_Struct > updo_ss; /* 上一步，进一步可以拓展为快照 */
     bool is_login = false;
+    size_t copys;   /* 副本个数 */
 };
 }
 

@@ -234,8 +234,8 @@ void Scheduler::run()
 {
     /* 新建线程来执行start */
     INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
-                                           << "Scheduler Begin Runing!"
-                                           << "%n%0";
+                                          << "Scheduler Begin Runing!"
+                                          << "%n%0";
     self                             = this; /* 传递this指针 */
     std::function< void() > func_ptr = this->start;
     m_thread.reset( new Threading( func_ptr, "Scheduler" ) );
@@ -263,12 +263,10 @@ void Scheduler::find_value()
 void Scheduler::manage()
 {
     /* 调度还没运行的任务 */
-    for ( size_t i = 0; i < this->m_tasks.size(); i++ )
+    while ( !this->m_tasks.empty() )
     {
-        if ( this->m_tasks[i].t_status == INIT )
-        {
-            this->assign_task( this->m_tasks[i] );
-        }
+        this->assign_task( *this->m_tasks.begin() );
+        this->m_tasks.pop_front();
     }
 }
 

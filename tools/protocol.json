@@ -1,9 +1,9 @@
 {
-    "bit": 101,
+    "bit": 104,
     "from": "127.0.0.1:7002",
     "file_name": "test",
     "path": "root",
-    "data": "None",
-    "customize": ["0"],
+    "data": "This a test file.",
+    "customize": ["1"],
     "package_size": 0
 }

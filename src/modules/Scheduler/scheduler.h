@@ -5,6 +5,7 @@
 #include <memory>
 #include <semaphore.h>
 #include <vector>
+#include <deque>
 
 #include "../log/log.h"
 #include "../thread/thread.h"
@@ -148,12 +149,12 @@ protected:
 protected:
     size_t max_fibers;                       /* 最大协程数 */
     size_t max_threads;                      /* 最大线程数 */
-    std::vector< Scheduler::task > m_tasks;  /* 任务池 */
+    std::deque< Scheduler::task > m_tasks;  /* 任务池 */
     std::vector< Threading::ptr > m_threads; /* 线程池 */
     Logger::ptr m_logger;                    /* 日志器 */
 };
 
-static thread_local std::vector< Scheduler::task > arr;
+static thread_local std::deque< Scheduler::task > arr;
 
 }
 

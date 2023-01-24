@@ -1,5 +1,6 @@
 #include "./master_server.h"
 #include "core/tcpServer/tcpserver.h"
+#include "modules/Scheduler/scheduler.h"
 #include "modules/log/log.h"
 #include "modules/meta_data/meta_data.h"
 #include "modules/protocol/protocol.h"
@@ -7,7 +8,6 @@
 #include "modules/socket/socket.h"
 
 #include "json/value.h"
-#include <asm-generic/errno.h>
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -38,6 +38,7 @@ master_server::master_server( std::filesystem::path settings_path )
         }
 
         this->max_chunk_size = this->m_settings->get( "Max_chunk_size" ).asInt();
+        this->copys          = this->m_settings->get( "copy_num" ).asInt();
 
         this->print_logo();
         this->m_db->open();
@@ -82,60 +83,6 @@ bool master_server::find_chunk_meta_data( std::string f_name, int index, chunk_m
     << "find chunk failed！ %n what: File does not exist."
     << "%n%0";
     return false;
-}
-
-void master_server::Split_file( std::string f_name, const char* f_data, std::string path )
-{
-    file_meta_data chunks;
-    int i     = 0;
-    int index = 0;
-    std::string temp;
-
-    // DEBUG_STD_STREAM_LOG( this->m_logger ) << "data:" << f_data << "%n%0";
-    // DEBUG_STD_STREAM_LOG( this->m_logger ) << "Max chunk size:" << S( this->max_chunk_size ) << "%n%0";
-
-    while ( *f_data )
-    {
-        if ( i < this->max_chunk_size )
-        {
-            // DEBUG_STD_STREAM_LOG( this->m_logger )
-            //<< "str: " << S( *f_data ) << "index:" << S( i ) << "%n%0";
-            temp.push_back( *f_data );
-            f_data++;
-        }
-        else
-        {
-            /* 达到最大块大小，生成一个块 */
-            chunk_meta_data cur( f_name, index, temp, path, i, "UNKNOW", 0 );
-            chunks.chunk_list.push_back( cur );
-            index++;
-            temp.clear();
-            chunks.f_size += i;
-            i = 0;
-        }
-        i++;
-    }
-
-    if ( !temp.empty() )
-    {
-        chunk_meta_data cur( f_name, index, temp, path, i, "UNKNOW", 0 );
-        chunks.chunk_list.push_back( cur );
-        temp.clear();
-    }
-
-    chunks.f_name    = f_name;
-    chunks.num_chunk = chunks.chunk_list.size();
-    chunks.f_size += i;
-    chunks.f_path = path;
-
-    pthread_mutex_lock( &mutex );
-
-    meta_data_tab[f_name] = chunks;
-
-    pthread_mutex_unlock( &mutex );
-
-    // DEBUG_STD_STREAM_LOG( this->m_logger ) << "ok"
-    //                                      << "%n%0";
 }
 
 void master_server::respond()
@@ -184,9 +131,14 @@ void master_server::respond()
         std::string user_name;
         std::string pwd;
         std::string data;
+        std::string temp_str;
         bool flag;
         int package_num;
         int gap;
+        size_t index;
+        int k = 0;
+        star::IPv4Address::ptr addr;
+        star::MSocket::ptr sock;
 
     UPDO:
         /* 判断 */
@@ -221,17 +173,116 @@ void master_server::respond()
                 tcpserver::send( remote_sock, cur );
                 break;
 
+            /* 更新文件元数据表 */
+            case 102:
+                self->updo_ss.push( cur );
+                j     = 0;
+                i     = 0;
+                index = 0;
+
+                while ( i < cur.customize.size() )
+                {
+                    meta_data_tab[cur.customize[j]].chunk_list.clear();
+
+                    meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
+                    i                                      = i + 1;
+
+                    meta_data_tab[cur.customize[j]].f_path = cur.customize[i];
+                    i                                      = i + 1;
+
+                    meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i] );
+                    i = i + 1;
+
+                    meta_data_tab[cur.customize[j]].num_chunk++;
+
+                    index    = cur.from.find( ':' );
+                    cur.from = cur.from.substr( 0, index ); /* 把 ： 后的端口号去掉 */
+                    got_chunk.from = cur.from;
+
+                    got_chunk.port  = std::stoi( cur.path );
+                    got_chunk.index = std::stoi( cur.customize[i++] );
+
+                    meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
+                    j++;
+                }
+                break;
+
             /* 客户端上传文件 */
             case 104:
                 // pthread_mutex_lock( &mutex );
-                file_name   = cur.file_name;
-                file_path   = cur.path;
-                data        = cur.data;
-                package_num = std::stoi( cur.customize[0] ) - 1;
+                got_chunk.f_name = cur.file_name;
+                got_chunk.f_path = cur.path;
+                got_chunk.data   = cur.data;
+                package_num      = std::stoi( cur.customize[0] ) - 1;
+                got_chunk.index  = 0;
+                j                = 0;
+                k                = 0;
 
-                DEBUG_STD_STREAM_LOG( self->m_logger ) << S( cur.bit ) << "%n%0";
+                gap
+                = int( meta_data_tab[file_name].chunk_list.size() / self->chunk_server_list.size() );
 
-                /* 继续接受后面的包 */
+                /* 先发第一个包 */
+                for ( size_t ind = 0; ind < self->copys; ind++ )
+                {
+                    cur.clear();
+                    cur.bit       = 108;
+                    cur.file_name = got_chunk.f_name;
+
+                    /* 后两个是副本，名称加前缀 copy- */
+                    if ( ind )
+                    {
+                        cur.file_name = "copy-" + S( ind ) + "-" + cur.file_name;
+                    }
+
+                    cur.path = got_chunk.f_path;
+                    cur.data = got_chunk.data;
+                    cur.customize.push_back( S( got_chunk.index ) );
+                    cur.from = self->m_sock->getLocalAddress()->toString();
+
+                    addr = star::IPv4Address::Create( self->chunk_server_list[0].addr.c_str(),
+                                                      self->chunk_server_list[0].port );
+                    sock = star::MSocket::CreateTCP( addr );
+
+                    if ( !sock->connect( addr ) )
+                    {
+                        return;
+                    }
+                    tcpserver::send( sock, cur );
+
+                    current_procotol = tcpserver::recv( sock, self->buffer_size );
+
+                    if ( !current_procotol )
+                    {
+                        FATAL_STD_STREAM_LOG( self->m_logger ) << "%D"
+                                                               << "Receive Message Error"
+                                                               << "%n%0";
+                        return;
+                    }
+
+                    cur = current_procotol->get_protocol_struct();
+
+                    if ( cur.data != "true" && cur.bit == 116 )
+                    {
+                        ERROR_STD_STREAM_LOG( self->m_logger ) << "%D"
+                                                               << "Chunk Store error"
+                                                               << "%n%0";
+                        temp_str = "Chunk Store error";
+
+                        return;
+                    }
+
+                    DEBUG_STD_STREAM_LOG( self->m_logger ) << "%D"
+                                                           << "Chunk Store successfully"
+                                                           << "%n%0";
+
+                    temp_str = "Chunk Store successfully";
+
+                    sock->close();
+                }
+
+                k++;
+
+                /* 如果有的话，继续接受后面的包 */
                 if ( package_num > 0 )
                 {
                     for ( size_t i = 0; i < package_num; i++ )
@@ -245,81 +296,91 @@ void master_server::respond()
                             << "%D"
                             << "Receive Message Error"
                             << "%n%0";
-                        }
-
-                        cur = current_procotol->get_protocol_struct();
-                        data += cur.data;
-                    }
-                }
-
-                /* 分割文件块 */
-                self->Split_file( file_name, data.c_str(), file_path );
-
-                /* 给每个 chunk server 分配的文件块数*/
-                gap
-                = int( meta_data_tab[file_name].chunk_list.size() / self->chunk_server_list.size() );
-
-                i = 0;
-                /* chunk server 发送文件块 */
-                for ( auto item : self->chunk_server_list )
-                {
-                    star::IPv4Address::ptr addr
-                    = star::IPv4Address::Create( item.addr.c_str(), item.port );
-                    star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
-
-                    if ( !sock->connect( addr ) )
-                    {
-                        return;
-                    }
-                    j = 0;
-
-                    while ( j < gap )
-                    {
-                        meta_data_tab[file_name].chunk_list[i].from = item.addr;
-                        meta_data_tab[file_name].chunk_list[i].from = item.port;
-                        cur.clear();
-                        cur.bit          = 108;
-                        cur.from         = self->m_sock->getLocalAddress()->toString();
-                        cur.file_name    = meta_data_tab[file_name].f_name;
-                        cur.path         = meta_data_tab[file_name].f_path;
-                        cur.data         = meta_data_tab[file_name].chunk_list[i].data;
-                        cur.package_size = cur.data.size();
-                        cur.customize.push_back( std::to_string( i ) );
-
-                        tcpserver::send( sock, cur );
-                        cur.clear();
-
-                        current_procotol = tcpserver::recv( sock, self->buffer_size );
-
-                        /* 看是否接受成功 */
-                        if ( !current_procotol )
-                        {
-                            FATAL_STD_STREAM_LOG( self->m_logger )
-                            << "%D"
-                            << "Receive Message Error"
-                            << "%n%0";
-                        }
-
-                        cur = current_procotol->get_protocol_struct();
-
-                        if ( cur.data != "true" && cur.bit == 116 )
-                        {
-                            ERROR_STD_STREAM_LOG( self->m_logger )
-                            << "%D"
-                            << "send chunk data error"
-                            << "%n%0";
 
                             return;
                         }
+                        if ( j < self->chunk_server_list.size() )
+                        {
 
-                        DEBUG_STD_STREAM_LOG( self->m_logger ) << "%D"
-                                                               << "Chunk Store successfully"
-                                                               << "%n%0";
-                        i++;
-                        j++;
+                            cur.clear();
+                            cur = current_procotol->get_protocol_struct();
+
+                            got_chunk.f_name = cur.file_name;
+                            got_chunk.f_path = cur.path;
+                            got_chunk.data   = cur.data;
+                            got_chunk.index  = std::stoi( cur.customize[0] );
+
+                            for ( size_t ind = 0; ind < self->copys; ind++ )
+                            {
+                                cur.clear();
+                                cur.bit       = 108;
+                                cur.file_name = got_chunk.f_name;
+
+                                if ( ind )
+                                {
+                                    /* 副本发往不同的 chunk 服务器 */
+                                    cur.file_name = "copy-" + S( ind ) + "-" + got_chunk.f_name;
+                                    j++;
+                                    if ( j > self->chunk_server_list.size() )
+                                    {
+                                        j = 0;
+                                    }
+                                }
+
+                                cur.path = got_chunk.f_path;
+                                cur.data = got_chunk.data;
+                                cur.customize.push_back( S( got_chunk.index ) );
+
+                                addr
+                                = star::IPv4Address::Create( self->chunk_server_list[j].addr.c_str(),
+                                                             self->chunk_server_list[j].port );
+                                sock = star::MSocket::CreateTCP( addr );
+
+                                if ( !sock->connect( addr ) )
+                                {
+                                    return;
+                                }
+
+                                tcpserver::send( sock, cur );
+
+                                current_procotol = tcpserver::recv( sock, self->buffer_size );
+
+                                if ( cur.data != "true" && cur.bit == 116 )
+                                {
+                                    ERROR_STD_STREAM_LOG( self->m_logger )
+                                    << "%D"
+                                    << "Chunk Store error"
+                                    << "%n%0";
+                                    temp_str = "Chunk Store error";
+
+                                    return;
+                                }
+
+                                DEBUG_STD_STREAM_LOG( self->m_logger )
+                                << "%D"
+                                << "Chunk Store successfully"
+                                << "%n%0";
+
+                                temp_str = "Chunk Store successfully";
+
+                                if ( k < gap )
+                                {
+                                    k++;
+                                }
+                                else
+                                {
+                                    k = 0;
+                                }
+                                j++;
+
+                                sock->close();
+                            }
+                        }
+                        else
+                        {
+                            j = 0;
+                        }
                     }
-
-                    sock->close();
                 }
 
                 // pthread_mutex_unlock( &mutex );
@@ -331,7 +392,7 @@ void master_server::respond()
                     cur.from      = self->m_sock->getLocalAddress()->toString();
                     cur.file_name = file_name;
                     cur.path      = file_path;
-                    cur.data      = "true";
+                    cur.data      = temp_str;
 
                     tcpserver::send( remote_sock, cur );
                     // sleep( 5 );
@@ -354,9 +415,6 @@ void master_server::respond()
 
                 meta_data_tab[file_name].f_path = file_new_path;
                 got_file                        = meta_data_tab[file_name];
-
-                DEBUG_STD_STREAM_LOG( self->m_logger ) << "ok"
-                                                       << "%n%0";
 
                 for ( auto item : got_file.chunk_list )
                 {

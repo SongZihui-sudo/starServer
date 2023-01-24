@@ -21,7 +21,7 @@
 namespace star
 {
 
-extern size_t thread_nums; /* 创建的线程数量 */
+extern int thread_nums; /* 创建的线程数量 */
 
 /*
     线程类

@@ -18,7 +18,7 @@
 namespace star
 {
 
-size_t thread_nums = 0;
+int thread_nums = 0;
 
 Threading::Threading( std::function< void() > func, const std::string& name )
 {
@@ -101,17 +101,23 @@ void* Threading::run( void* arg )
 
     try
     {
-        std::function<void()> func;
-        func.swap(thread->func);
+        std::function< void() > func;
+        func.swap( thread->func );
         func();
     }
-    catch(std::exception& e)
+    catch ( std::exception& e )
     {
         throw e.what();
     }
 
     thread->m_status = FREE;
-    //sem_post( &thread->m_sem );
+
+    INFO_STD_STREAM_LOG( thread->t_logger )
+    << std::to_string( getTime() ) << " <----> "
+    << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Exit!"
+    << "%n%0";
+
+    // sem_post( &thread->m_sem );
 
     return nullptr;
 }
@@ -119,7 +125,7 @@ void* Threading::run( void* arg )
 void Threading::reset( std::function< void() > func, std::string thread_name )
 {
     this->m_name = thread_name;
-    this->func = func;
+    this->func   = func;
 
     m_status = INIT;
 

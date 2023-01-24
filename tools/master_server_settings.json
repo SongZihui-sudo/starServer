@@ -14,5 +14,6 @@
     "DBname": "Master_DB",
     "BUffer_size": 4096,
     "Max_connects": 100,
-    "Max_chunk_size": 1024
+    "Max_chunk_size": 1024,
+    "copy_num": 3
 }
