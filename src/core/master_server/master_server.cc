@@ -213,7 +213,7 @@ void master_server::respond()
                 got_chunk.f_name = cur.file_name;
                 got_chunk.f_path = cur.path;
                 got_chunk.data   = cur.data;
-                package_num      = std::stoi( cur.customize[0] ) - 1;
+                package_num      = std::stoi( cur.customize[0] );
                 got_chunk.index  = 0;
                 j                = 0;
                 k                = 0;
@@ -221,72 +221,13 @@ void master_server::respond()
                 gap
                 = int( meta_data_tab[file_name].chunk_list.size() / self->chunk_server_list.size() );
 
-                /* 先发第一个包 */
-                for ( size_t ind = 0; ind < self->copys; ind++ )
+                /* 接受数据包 */
+
+                for ( size_t i = 0; i < package_num; i++ )
                 {
-                    cur.clear();
-                    cur.bit       = 108;
-                    cur.file_name = got_chunk.f_name;
-
-                    /* 后两个是副本，名称加前缀 copy- */
-                    if ( ind )
+                    if ( i )
                     {
-                        cur.file_name = "copy-" + S( ind ) + "-" + cur.file_name;
-                    }
-
-                    cur.path = got_chunk.f_path;
-                    cur.data = got_chunk.data;
-                    cur.customize.push_back( S( got_chunk.index ) );
-                    cur.from = self->m_sock->getLocalAddress()->toString();
-
-                    addr = star::IPv4Address::Create( self->chunk_server_list[0].addr.c_str(),
-                                                      self->chunk_server_list[0].port );
-                    sock = star::MSocket::CreateTCP( addr );
-
-                    if ( !sock->connect( addr ) )
-                    {
-                        return;
-                    }
-                    tcpserver::send( sock, cur );
-
-                    current_procotol = tcpserver::recv( sock, self->buffer_size );
-
-                    if ( !current_procotol )
-                    {
-                        FATAL_STD_STREAM_LOG( self->m_logger ) << "%D"
-                                                               << "Receive Message Error"
-                                                               << "%n%0";
-                        return;
-                    }
-
-                    cur = current_procotol->get_protocol_struct();
-
-                    if ( cur.data != "true" && cur.bit == 116 )
-                    {
-                        ERROR_STD_STREAM_LOG( self->m_logger ) << "%D"
-                                                               << "Chunk Store error"
-                                                               << "%n%0";
-                        temp_str = "Chunk Store error";
-
-                        return;
-                    }
-
-                    DEBUG_STD_STREAM_LOG( self->m_logger ) << "%D"
-                                                           << "Chunk Store successfully"
-                                                           << "%n%0";
-
-                    temp_str = "Chunk Store successfully";
-
-                    sock->close();
-                }
-
-                k++;
-
-                /* 如果有的话，继续接受后面的包 */
-                if ( package_num > 0 )
-                {
-                    for ( size_t i = 0; i < package_num; i++ )
-                    {
+                        /* 继续接受后面的包 */
                         current_procotol = tcpserver::recv( remote_sock, self->buffer_size );
 
                         /* 看是否接受成功 */
@@ -299,87 +240,88 @@ void master_server::respond()
 
                             return;
                         }
-                        if ( j < self->chunk_server_list.size() )
-                        {
+                    }
 
+                    if ( j < self->chunk_server_list.size() )
+                    {
+
+                        cur.clear();
+                        cur = current_procotol->get_protocol_struct();
+
+                        got_chunk.f_name = cur.file_name;
+                        got_chunk.f_path = cur.path;
+                        got_chunk.data   = cur.data;
+                        got_chunk.index  = std::stoi( cur.customize[0] );
+
+                        for ( size_t ind = 0; ind < self->copys; ind++ )
+                        {
                             cur.clear();
-                            cur = current_procotol->get_protocol_struct();
+                            cur.bit       = 108;
+                            cur.file_name = got_chunk.f_name;
 
-                            got_chunk.f_name = cur.file_name;
-                            got_chunk.f_path = cur.path;
-                            got_chunk.data   = cur.data;
-                            got_chunk.index  = std::stoi( cur.customize[0] );
-
-                            for ( size_t ind = 0; ind < self->copys; ind++ )
+                            if ( ind )
                             {
-                                cur.clear();
-                                cur.bit       = 108;
-                                cur.file_name = got_chunk.f_name;
-
-                                if ( ind )
-                                {
-                                    /* 副本发往不同的 chunk 服务器 */
-                                    cur.file_name = "copy-" + S( ind ) + "-" + got_chunk.f_name;
-                                    j++;
-                                    if ( j > self->chunk_server_list.size() )
-                                    {
-                                        j = 0;
-                                    }
-                                }
-
-                                cur.path = got_chunk.f_path;
-                                cur.data = got_chunk.data;
-                                cur.customize.push_back( S( got_chunk.index ) );
-
-                                addr
-                                = star::IPv4Address::Create( self->chunk_server_list[j].addr.c_str(),
-                                                             self->chunk_server_list[j].port );
-                                sock = star::MSocket::CreateTCP( addr );
-
-                                if ( !sock->connect( addr ) )
-                                {
-                                    return;
-                                }
-
-                                tcpserver::send( sock, cur );
-
-                                current_procotol = tcpserver::recv( sock, self->buffer_size );
-
-                                if ( cur.data != "true" && cur.bit == 116 )
-                                {
-                                    ERROR_STD_STREAM_LOG( self->m_logger )
-                                    << "%D"
-                                    << "Chunk Store error"
-                                    << "%n%0";
-                                    temp_str = "Chunk Store error";
-
-                                    return;
-                                }
-
-                                DEBUG_STD_STREAM_LOG( self->m_logger )
-                                << "%D"
-                                << "Chunk Store successfully"
-                                << "%n%0";
-
-                                temp_str = "Chunk Store successfully";
-
-                                if ( k < gap )
-                                {
-                                    k++;
-                                }
-                                else
-                                {
-                                    k = 0;
-                                }
+                                /* 副本发往不同的 chunk 服务器 */
+                                cur.file_name = "copy-" + S( ind ) + "-" + got_chunk.f_name;
                                 j++;
-
-                                sock->close();
+                                if ( j > self->chunk_server_list.size() )
+                                {
+                                    j = 0;
+                                }
                             }
+
+                            cur.path = got_chunk.f_path;
+                            cur.data = got_chunk.data;
+                            cur.customize.push_back( S( got_chunk.index ) );
+
+                            addr
+                            = star::IPv4Address::Create( self->chunk_server_list[j].addr.c_str(),
+                                                         self->chunk_server_list[j].port );
+                            sock = star::MSocket::CreateTCP( addr );
+
+                            if ( !sock->connect( addr ) )
+                            {
+                                return;
+                            }
+
+                            tcpserver::send( sock, cur );
+
+                            current_procotol = tcpserver::recv( sock, self->buffer_size );
+
+                            if ( cur.data != "true" && cur.bit == 116 )
+                            {
+                                ERROR_STD_STREAM_LOG( self->m_logger )
+                                << "%D"
+                                << "Chunk Store error"
+                                << "%n%0";
+                                temp_str = "Chunk Store error";
+
+                                return;
+                            }
+
+                            DEBUG_STD_STREAM_LOG( self->m_logger )
+                            << "%D"
+                            << "Chunk Store successfully"
+                            << "%n%0";
+
+                            temp_str = "Chunk Store successfully";
+
+                            if ( k < gap )
+                            {
+                                k++;
+                            }
+                            else
+                            {
+                                k = 0;
+                            }
+                            j++;
+
+                            sock->close();
                         }
-                        else
-                        {
-                            j = 0;
-                        }
+                    }
+                    else
+                    {
+                        j = 0;
                     }
                 }
 
@@ -388,7 +330,7 @@ void master_server::respond()
                 try
                 {
                     cur.clear();
-                    cur.bit       = 115;
+                    cur.bit       = 131;
                     cur.from      = self->m_sock->getLocalAddress()->toString();
                     cur.file_name = file_name;
                     cur.path      = file_path;

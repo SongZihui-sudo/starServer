@@ -188,7 +188,7 @@ void chunk_server::respond()
                 cur.clear();
 
                 /* 发送数据 */
-                cur.bit       = 113;
+                cur.bit       = 129;
                 cur.file_name = file_name;
                 cur.path      = file_path;
                 cur.data      = "true";
