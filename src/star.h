@@ -29,4 +29,8 @@
 
 #include "./core/tcpServer/tcpserver.h"
 
+#include "./modules/io_lock/io_lock.h"
+
+#include "./modules/lease/lease.h"
+
 #endif

@@ -5,15 +5,23 @@
 #include <string>
 #include <vector>
 
-#include "../protocol/protocol.h"
+#include "../common/common.h"
 
 namespace star
 {
+
+enum file_operation
+{
+    write = -1,
+    read  = -2
+};
+
 /*
     块元数据
 */
 struct chunk_meta_data
 {
+    std::string f_id;   /* 文件 id */
     std::string f_name; /* 文件名 */
     size_t index;       /* 索引 */
     std::string data;   /* 数据 */
@@ -45,6 +53,7 @@ struct chunk_meta_data
 /* 文件元数据 */
 struct file_meta_data
 {
+    std::string f_id;                          /* 文件 id */
     std::string f_name;                        /* 文件名 */
     std::vector< chunk_meta_data > chunk_list; /* 文件列表 */
     size_t f_size;                             /* 文件大小 */
@@ -55,6 +64,7 @@ struct file_meta_data
 
     file_meta_data( std::string user, std::string f_name, size_t f_size, std::string path )
     {
+        f_id         = random_string( 16 );
         this->f_name = f_name;
         this->f_path = path;
         this->f_size = f_size;
@@ -62,5 +72,4 @@ struct file_meta_data
 };
 
 }
-
 #endif

@@ -13,6 +13,8 @@ includes("./src/modules/Scheduler")
 includes("./src/core/chunk_server")
 includes("./src/core/master_server")
 includes("./src/core/tcpServer")
+includes("./src/modules/Scheduler/mods/timer")
+includes("./src/modules/io_lock")
 
 add_includedirs("./src/")
 

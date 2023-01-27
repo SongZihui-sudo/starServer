@@ -61,4 +61,7 @@ T byteswapOnBigEndian( T t )
     return byteswap( t );
 }
 
+/* 生成随机字符串 */
+std::string random_string( size_t len );
+
 #endif

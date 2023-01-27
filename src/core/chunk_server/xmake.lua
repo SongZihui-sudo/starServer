@@ -9,7 +9,6 @@ add_links("sqlite3")
 
 target("Chunk_Server")
     add_deps("Logger")
-    add_deps("Settings")
     add_deps("database")
     add_deps("scheduler")
     add_deps("socket")

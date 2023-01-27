@@ -4,8 +4,6 @@
 #include "modules/log/log.h"
 #include "modules/protocol/protocol.h"
 
-#include "json/config.h"
-#include <algorithm>
 #include <cstddef>
 #include <exception>
 #include <filesystem>
@@ -49,7 +47,6 @@ void tcpserver::wait( void respond(), void* self )
 {
     /* 运行调度器 */
     server_scheduler.reset( new Scheduler( this->max_connects, this->max_connects ) );
-    server_scheduler->run(); /* 等待进行任务调度 */
 
     /* 监听 socket 连接 */
     this->m_status = Normal;
@@ -61,8 +58,6 @@ void tcpserver::wait( void respond(), void* self )
     int index = 0;
     int i     = 0;
     this->m_sock->listen( this->max_connects );
-
-    MESSAGE_MAP( SOCKET_CONNECTS, this->max_connects );
 
     /* 阻塞线程，进行等待 */
     INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "

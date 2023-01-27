@@ -720,9 +720,6 @@ private:
     Logger::ptr m_root;
 };
 
-/* 生成随机字符串 */
-std::string random_string( size_t len );
-
 } // namespace star
 
 #endif

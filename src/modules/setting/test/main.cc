@@ -1,5 +1,4 @@
 #include "../setting.h"
-#include "../setting.cc"
 
 #include <iostream>
 

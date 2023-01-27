@@ -9,6 +9,7 @@
 #define THREAD_H
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <semaphore.h>
@@ -28,7 +29,7 @@ extern int thread_nums; /* 创建的线程数量 */
 */
 class Threading
 {
-protected:
+public:
     enum Thread_Status
     {
         FREE   = 0,
@@ -67,7 +68,7 @@ public:
     void exit();
 
     /* 获取信号量 */
-    //sem_t get_sem() { return this->m_sem; }
+    // sem_t get_sem() { return this->m_sem; }
 
     /* 获取执行函数 */
     std::function< void() > get_func() { return this->func; }
@@ -86,6 +87,9 @@ public:
 
     /* 获取线程状态 */
     Thread_Status get_status() { return this->m_status; }
+
+    /* 获取线程任务执行完成时间 */
+    int64_t get_task_end_time() { return this->task_end_time; }
 
 private:
     /*
@@ -107,8 +111,9 @@ private:
     std::string m_name;           /* 线程名 */
     pthread_t m_thread;           /* 线程 */
     std::function< void() > func; /* 线程执行函数 */
-    //sem_t m_sem;                  /* 信号量 */
-    star::Logger::ptr t_logger;   /* 日志器 */
+    // sem_t m_sem;                  /* 信号量 */
+    star::Logger::ptr t_logger; /* 日志器 */
+    int64_t task_end_time;      /* 任务的执行完成时间 */
 };
 }
 

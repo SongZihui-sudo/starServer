@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
+#include <initializer_list>
 #include <map>
 #include <stack>
 #include <star.h>
@@ -60,6 +62,30 @@ public:
     static void respond();
 
 protected:
+    /* 响应函数 */
+    static void deal_with_101( std::vector< void* > args ); /* 客户端请求指定文件的元数据 */
+
+    static void deal_with_102( std::vector< void* > args ); /* 更新文件元数据表 */
+
+    static void deal_with_104( std::vector< void* > args ); /* 客户端上传文件 */
+
+    static void deal_with_117( std::vector< void* > args ); /* 修改文件路径 */
+
+    static void deal_with_118( std::vector< void* > args ); /* 用户认证 */
+
+    static void deal_with_119( std::vector< void* > args ); /* 注册用户认证信息 */
+
+    static void deal_with_126( std::vector< void* > args ); /* 客户端请求已经上传的文件元数据 包含 文件名，路径 */
+
+    /* 消息映射函数表 */
+    std::map< int32_t, std::function< void( std::vector< void* > ) > > message_funcs
+    = { { 101, std::function< void( std::vector< void* > ) >( deal_with_101 ) },
+        { 102, std::function< void( std::vector< void* > ) >( deal_with_102 ) },
+        { 104, std::function< void( std::vector< void* > ) >( deal_with_104 ) },
+        { 117, std::function< void( std::vector< void* > ) >( deal_with_117 ) },
+        { 119, std::function< void( std::vector< void* > ) >( deal_with_118 ) },
+        { 126, std::function< void( std::vector< void* > ) >( deal_with_126 ) } };
+
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );
 
@@ -79,9 +105,8 @@ protected:
 private:
     size_t max_chunk_size;                              /* chunk 的最大大小  */
     std::vector< chunk_server_info > chunk_server_list; /* chunk server 信息 */
-    std::stack< protocol::Protocol_Struct > updo_ss; /* 上一步，进一步可以拓展为快照 */
     bool is_login = false;
-    size_t copys;   /* 副本个数 */
+    size_t copys; /* 副本个数 */
 };
 }
 

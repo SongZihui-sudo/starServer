@@ -1,48 +1,15 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <semaphore.h>
 #include <vector>
-#include <deque>
 
 #include "../log/log.h"
 #include "../thread/thread.h"
-
-/* 插入消息 */
-template< typename T1, typename... Ts >
-void Register( std::vector< std::vector< void* > >& obj, int index, T1 arg1, Ts... arg_left )
-{
-
-    T1* temp = new T1;
-    *temp    = arg1;
-    obj[index].push_back( temp );
-
-    if constexpr ( sizeof...( arg_left ) > 0 )
-    {
-        Register( obj, index, arg_left... );
-    }
-}
-
-/* 生成消息映射 */
-static std::vector< std::vector< void* > > GENERATER_MESSAGE_MAP( size_t len )
-{
-    std::vector< std::vector< void* > > ret;
-
-    for ( size_t i = 0; i < len; i++ )
-    {
-        ret.push_back( std::vector< void* >() );
-    }
-
-    return ret;
-}
-
-/* 宏定义 */
-#define MESSAGE_MAP( obj, len )                                                            \
-    std::vector< std::vector< void* > > obj = GENERATER_MESSAGE_MAP( len );
-
-#define ADD_MESSAGE_MAP_LEN( obj ) obj.push_back( std::vector< void* >() );
 
 namespace star
 {
@@ -131,27 +98,19 @@ public:
      */
     virtual void reset_task( std::string t_name, std::function< void() > t_func );
 
-    /* 运行调度器 */
-    virtual void run();
-
     /* 获取信号量 */
-    //sem_t get_sem() { return m_thread->get_sem(); }
+    // sem_t get_sem() { return m_thread->get_sem(); }
 
-    /* 动态调度 */
+    /* 调度 */
     void manage();
-
-protected:
-    /*
-        启动静态调度器
-    */
-    static void start();
 
 protected:
     size_t max_fibers;                       /* 最大协程数 */
     size_t max_threads;                      /* 最大线程数 */
-    std::deque< Scheduler::task > m_tasks;  /* 任务池 */
+    std::deque< Scheduler::task > m_tasks;   /* 任务池 */
     std::vector< Threading::ptr > m_threads; /* 线程池 */
     Logger::ptr m_logger;                    /* 日志器 */
+    int16_t thread_free_time;
 };
 
 static thread_local std::deque< Scheduler::task > arr;

@@ -1,111 +1,116 @@
 [
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSocket", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/socket-test/linux/x86_64/debug/src/modules/socket/test/main.cc.o", "src/modules/socket/test/main.cc"],
-  "file": "src/modules/socket/test/main.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DChunk_Server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/Chunk_Server/linux/x86_64/debug/src/core/chunk_server/chunk_server.cc.o", "src/core/chunk_server/chunk_server.cc"],
-  "file": "src/core/chunk_server/chunk_server.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DChunk_Server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/Chunk_Server/linux/x86_64/debug/src/core/chunk_server/main/main.cc.o", "src/core/chunk_server/main/main.cc"],
-  "file": "src/core/chunk_server/main/main.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DLog", "-o", "build/.objs/Logger-test/linux/x86_64/debug/src/modules/log/test/main.cc.o", "src/modules/log/test/main.cc"],
-  "file": "src/modules/log/test/main.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DThread", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread/linux/x86_64/debug/src/modules/thread/thread.cc.o", "src/modules/thread/thread.cc"],
-  "file": "src/modules/thread/thread.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DCommon", "-o", "build/.objs/common-test/linux/x86_64/debug/src/modules/common/test/main.cc.o", "src/modules/common/test/main.cc"],
-  "file": "src/modules/common/test/main.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DProtocol", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/protocol-test/linux/x86_64/debug/src/modules/protocol/test/testprotocol.cc.o", "src/modules/protocol/test/testprotocol.cc"],
-  "file": "src/modules/protocol/test/testprotocol.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DDatabase", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-o", "build/.objs/database_test/linux/x86_64/debug/src/modules/db/test/main.cc.o", "src/modules/db/test/main.cc"],
-  "file": "src/modules/db/test/main.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSetting", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/Settings/linux/x86_64/debug/src/modules/setting/setting.cc.o", "src/modules/setting/setting.cc"],
-  "file": "src/modules/setting/setting.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
+  "directory": "/home/song/桌面/Code/starServer",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DXMAKE_TCP_SERVER_", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/tcpserver/linux/x86_64/debug/src/core/tcpServer/tcpserver.cc.o", "src/core/tcpServer/tcpserver.cc"],
   "file": "src/core/tcpServer/tcpserver.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DLog", "-o", "build/.objs/Logger/linux/x86_64/debug/src/modules/log/log.cc.o", "src/modules/log/log.cc"],
-  "file": "src/modules/log/log.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DDatabase", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-o", "build/.objs/database_test/linux/x86_64/debug/src/modules/db/test/main.cc.o", "src/modules/db/test/main.cc"],
+  "file": "src/modules/db/test/main.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMScheduler", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/scheduler-test/linux/x86_64/debug/src/modules/Scheduler/test/main.cc.o", "src/modules/Scheduler/test/main.cc"],
-  "file": "src/modules/Scheduler/test/main.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DTIMER_XMAKE", "-o", "build/.objs/timer/linux/x86_64/debug/src/modules/Scheduler/mods/timer/timer.cc.o", "src/modules/Scheduler/mods/timer/timer.cc"],
+  "file": "src/modules/Scheduler/mods/timer/timer.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DDatabase", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-o", "build/.objs/database/linux/x86_64/debug/src/modules/db/database.cc.o", "src/modules/db/database.cc"],
-  "file": "src/modules/db/database.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMScheduler", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/scheduler/linux/x86_64/debug/src/modules/Scheduler/scheduler.cc.o", "src/modules/Scheduler/scheduler.cc"],
-  "file": "src/modules/Scheduler/scheduler.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSocket", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/socket/linux/x86_64/debug/src/modules/socket/socket.cc.o", "src/modules/socket/socket.cc"],
-  "file": "src/modules/socket/socket.cc"
-},
-{
-  "directory": "/home/song/Desktop/Code/starServer",
+  "directory": "/home/song/桌面/Code/starServer",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSocket", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/socket/linux/x86_64/debug/src/modules/socket/address.cc.o", "src/modules/socket/address.cc"],
   "file": "src/modules/socket/address.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMaster_server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/master_server/linux/x86_64/debug/src/core/master_server/master_server.cc.o", "src/core/master_server/master_server.cc"],
-  "file": "src/core/master_server/master_server.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSocket", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/socket/linux/x86_64/debug/src/modules/socket/socket.cc.o", "src/modules/socket/socket.cc"],
+  "file": "src/modules/socket/socket.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMaster_server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/master_server/linux/x86_64/debug/src/core/master_server/main/main.cc.o", "src/core/master_server/main/main.cc"],
-  "file": "src/core/master_server/main/main.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSocket", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/socket-test/linux/x86_64/debug/src/modules/socket/test/main.cc.o", "src/modules/socket/test/main.cc"],
+  "file": "src/modules/socket/test/main.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DProtocol", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/serialize-test/linux/x86_64/debug/src/modules/protocol/test/testJsonSerial.cc.o", "src/modules/protocol/test/testJsonSerial.cc"],
-  "file": "src/modules/protocol/test/testJsonSerial.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DThread", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread/linux/x86_64/debug/src/modules/thread/thread.cc.o", "src/modules/thread/thread.cc"],
+  "file": "src/modules/thread/thread.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DChunk_Server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/Chunk_Server/linux/x86_64/debug/src/core/chunk_server/chunk_server.cc.o", "src/core/chunk_server/chunk_server.cc"],
+  "file": "src/core/chunk_server/chunk_server.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DChunk_Server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/Chunk_Server/linux/x86_64/debug/src/core/chunk_server/main/main.cc.o", "src/core/chunk_server/main/main.cc"],
+  "file": "src/core/chunk_server/main/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DCommon", "-o", "build/.objs/common/linux/x86_64/debug/src/modules/common/common.cc.o", "src/modules/common/common.cc"],
   "file": "src/modules/common/common.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSetting", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/setting-test/linux/x86_64/debug/src/modules/setting/test/main.cc.o", "src/modules/setting/test/main.cc"],
+  "file": "src/modules/setting/test/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMaster_server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/master_server/linux/x86_64/debug/src/core/master_server/master_server.cc.o", "src/core/master_server/master_server.cc"],
+  "file": "src/core/master_server/master_server.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMaster_server", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/master_server/linux/x86_64/debug/src/core/master_server/main/main.cc.o", "src/core/master_server/main/main.cc"],
+  "file": "src/core/master_server/main/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DCommon", "-o", "build/.objs/common-test/linux/x86_64/debug/src/modules/common/test/main.cc.o", "src/modules/common/test/main.cc"],
+  "file": "src/modules/common/test/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DLog", "-o", "build/.objs/Logger/linux/x86_64/debug/src/modules/log/log.cc.o", "src/modules/log/log.cc"],
+  "file": "src/modules/log/log.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DLog", "-o", "build/.objs/Logger-test/linux/x86_64/debug/src/modules/log/test/main.cc.o", "src/modules/log/test/main.cc"],
+  "file": "src/modules/log/test/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DTIMER_XMAKE", "-o", "build/.objs/timer_test/linux/x86_64/debug/src/modules/Scheduler/mods/timer/test/test.cc.o", "src/modules/Scheduler/mods/timer/test/test.cc"],
+  "file": "src/modules/Scheduler/mods/timer/test/test.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMScheduler", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/scheduler-test/linux/x86_64/debug/src/modules/Scheduler/test/main.cc.o", "src/modules/Scheduler/test/main.cc"],
+  "file": "src/modules/Scheduler/test/main.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
   "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DThread", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/thread_test/linux/x86_64/debug/src/modules/thread/test/test_thread.cc.o", "src/modules/thread/test/test_thread.cc"],
   "file": "src/modules/thread/test/test_thread.cc"
 },
 {
-  "directory": "/home/song/Desktop/Code/starServer",
-  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DSetting", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/setting-test/linux/x86_64/debug/src/modules/setting/test/main.cc.o", "src/modules/setting/test/main.cc"],
-  "file": "src/modules/setting/test/main.cc"
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DProtocol", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/serialize-test/linux/x86_64/debug/src/modules/protocol/test/testJsonSerial.cc.o", "src/modules/protocol/test/testJsonSerial.cc"],
+  "file": "src/modules/protocol/test/testJsonSerial.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DDatabase", "-I", "/home/song/.xmake/packages/l/leveldb/1.23/bbba9bff70084238ae451126c35dd917/include", "-I", "/home/song/.xmake/packages/s/snappy/1.1.9/76b57b3b468844e5a8df982201d55b65/include", "-o", "build/.objs/database/linux/x86_64/debug/src/modules/db/database.cc.o", "src/modules/db/database.cc"],
+  "file": "src/modules/db/database.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DProtocol", "-I", "/home/song/.xmake/packages/j/jsoncpp/1.9.5/6a59121558c24c01a73b20670010be3a/include", "-o", "build/.objs/protocol-test/linux/x86_64/debug/src/modules/protocol/test/testprotocol.cc.o", "src/modules/protocol/test/testprotocol.cc"],
+  "file": "src/modules/protocol/test/testprotocol.cc"
+},
+{
+  "directory": "/home/song/桌面/Code/starServer",
+  "arguments": ["/usr/bin/gcc", "-c", "-m64", "-g", "-O0", "-std=c++20", "-Isrc", "-DMScheduler", "-I", "/home/song/.xmake/packages/l/libaco/v1.2.4/e9466c3cc81446fb98462dfe17108e97/include", "-o", "build/.objs/scheduler/linux/x86_64/debug/src/modules/Scheduler/scheduler.cc.o", "src/modules/Scheduler/scheduler.cc"],
+  "file": "src/modules/Scheduler/scheduler.cc"
 }]

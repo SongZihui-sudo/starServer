@@ -3,6 +3,7 @@
 #include "modules/log/log.h"
 
 #include <aco.h>
+#include <cstdint>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -145,103 +146,6 @@ void Scheduler::reset_task( std::string t_name, std::function< void() > t_func )
     aco_destroy( co2 );               /* 销毁协程2 */
 }
 
-void Scheduler::start()
-{
-    Scheduler* Self = ( Scheduler* )self;
-
-    INFO_STD_STREAM_LOG( Self->m_logger ) << std::to_string( getTime() ) << " <----> "
-                                          << "Scheduler Staring!"
-                                          << "%n%0";
-
-    while ( true )
-    {
-        if ( !Schedule_args.empty() )
-        {
-            std::string temp = "";
-            std::function< void() > temp1;
-            switch ( *( int* )Schedule_args[0] )
-            {
-                case 1:
-                    INFO_STD_STREAM_LOG( Self->m_logger )
-                    << std::to_string( getTime() ) << " <----> "
-                    << "Scheduler flag: " << std::to_string( 1 ) << "%n%0";
-                    /* 注册任务 */
-                    Self->Regist_task( *( std::function< void() >* )Schedule_args[1],
-                                       ( ( std::string* )Schedule_args[2] )->c_str() );
-                    Schedule_args.clear();
-                    Schedule_answer = 1;
-                    break;
-                case 2:
-                    INFO_STD_STREAM_LOG( Self->m_logger )
-                    << std::to_string( getTime() ) << " <----> "
-                    << "Scheduler flag: " << std::to_string( 2 ) << "%n%0";
-                    Self->delete_task( ( ( std::string* )Schedule_args[1] )->c_str() );
-                    Schedule_args.clear();
-                    Schedule_answer = 1;
-                    break;
-                case 3:
-                    INFO_STD_STREAM_LOG( Self->m_logger )
-                    << std::to_string( getTime() ) << " <----> "
-                    << "Scheduler flag: " << std::to_string( 3 ) << "%n%0";
-                    /* 重设任务 */
-                    Self->reset_task( ( ( std::string* )Schedule_args[2] )->c_str(),
-                                      *( std::function< void() >* )Schedule_args[1] );
-                    Schedule_args.clear();
-                    Schedule_answer = 1;
-                    break;
-                case 4:
-                    INFO_STD_STREAM_LOG( Self->m_logger )
-                    << std::to_string( getTime() ) << " <----> "
-                    << "Scheduler flag: " << std::to_string( 4 ) << "%n%0";
-                    /* 分配任务 */
-                    for ( size_t i = 0; i < Self->m_tasks.size(); i++ )
-                    {
-                        if ( Self->m_tasks[i].t_status == INIT )
-                        {
-                            Self->assign_task( Self->m_tasks[i] );
-                        }
-                    }
-                    Schedule_args.clear();
-                    Schedule_answer = 1;
-                    break;
-                case 5:
-                    INFO_STD_STREAM_LOG( Self->m_logger )
-                    << std::to_string( getTime() ) << " <----> "
-                    << "Scheduler flag: " << std::to_string( 5 ) << "%n%0";
-
-                    WERN_STD_STREAM_LOG( Self->m_logger ) << "The scheduler process ends."
-                                                          << "%n%0";
-                    /* 线程结束 */
-                    Schedule_answer = 2;
-                    return;
-                default:
-                    WERN_STD_STREAM_LOG( Self->m_logger ) << "Unknown scheduler signal！"
-                                                          << "%n%0";
-                    Schedule_args.clear();
-                    break;
-            }
-        }
-        else
-        {
-            /* 休眠一下 */
-            sleep( 1 );
-        }
-    }
-    return;
-}
-
-void Scheduler::run()
-{
-    /* 新建线程来执行start */
-    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
-                                          << "Scheduler Begin Runing!"
-                                          << "%n%0";
-    self                             = this; /* 传递this指针 */
-    std::function< void() > func_ptr = this->start;
-    m_thread.reset( new Threading( func_ptr, "Scheduler" ) );
-    m_id = m_thread->get_id();
-}
-
 void Scheduler::find_value()
 {
     for ( size_t i = find_begin; i < find_end; i++ )
@@ -267,6 +171,24 @@ void Scheduler::manage()
     {
         this->assign_task( *this->m_tasks.begin() );
         this->m_tasks.pop_front();
+    }
+
+    /* 查看空闲的进程, 空闲时间过长的话，杀死这个进程*/
+    int64_t current_time = getTime();
+    int i                = 0;
+    for ( auto item : this->m_threads )
+    {
+        if ( item->get_status() == Threading::FREE )
+        {
+            int64_t free_time = current_time - item->get_task_end_time();
+            /* 默认为30秒 */
+            if ( free_time > this->thread_free_time )
+            {
+                /* 删除这个线程 */
+                this->m_threads.erase( this->m_threads.begin() + i );
+            }
+        }
+        i++;
     }
 }
 

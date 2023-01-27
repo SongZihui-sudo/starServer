@@ -9,7 +9,6 @@ add_links("sqlite3")
 
 target("master_server")
     add_deps("Logger")
-    add_deps("Settings")
     add_deps("database")
     add_deps("scheduler")
     add_deps("tcpserver")

@@ -111,6 +111,7 @@ void* Threading::run( void* arg )
     }
 
     thread->m_status = FREE;
+    thread->task_end_time = getTime();
 
     INFO_STD_STREAM_LOG( thread->t_logger )
     << std::to_string( getTime() ) << " <----> "

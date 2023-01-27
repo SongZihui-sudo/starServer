@@ -333,34 +333,6 @@ void TimeItem::format( std::ostringstream& in, LogEvent::ptr in_event )
 
 void EndItem::format( std::ostringstream& in, LogEvent::ptr in_event ) { in << std::endl; }
 
-std::string random_string( size_t len )
-{
-    int real_len = rand() % len;
-    if ( real_len == 0 )
-        return "";
-    char* str = ( char* )malloc( real_len );
-
-    for ( int i = 0; i < real_len; ++i )
-    {
-        switch ( ( rand() % 3 ) )
-        {
-            case 1:
-                str[i] = 'A' + rand() % 26;
-                break;
-            case 2:
-                str[i] = 'a' + rand() % 26;
-                break;
-            default:
-                str[i] = '0' + rand() % 10;
-                break;
-        }
-    }
-    str[real_len - 1]  = '\0';
-    std::string string = str;
-    free( str );
-    return string;
-}
-
 void FileLogAppender::generate_log_file( std::ofstream& in )
 {
     int random_len   = rand() % 100;
