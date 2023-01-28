@@ -70,6 +70,7 @@ void tcpserver::wait( void respond(), void* self )
         if ( remote_sock )
         {
             sock_ss.push( remote_sock );
+            this->connect_counter++;
 
             INFO_STD_STREAM_LOG( this->m_logger )
             << std::to_string( getTime() ) << " <----> "

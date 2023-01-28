@@ -8,6 +8,7 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -15,6 +16,7 @@
 #include <memory>
 #include <sqlite3.h>
 #include <string>
+#include <vector>
 
 #include "../log/log.h"
 
@@ -130,7 +132,7 @@ private:
 class levelDB : public database
 {
 public:
-    typedef std::shared_ptr<levelDB> ptr;
+    typedef std::shared_ptr< levelDB > ptr;
 
     levelDB( std::filesystem::path in_path, std::string in_name )
     : database( in_name, in_path )
@@ -148,40 +150,127 @@ public:
     virtual bool close() override; /* 关闭数据库 */
 
     /* 因为leveldb为键值形式的数据库，提供了put，get接口，无需使用命令操作，删除这个函数 */
-    virtual bool exec( std::string in_cmd, std::function< int*( void*, int, char**, char** ) > callback = nullptr ) override
+    virtual bool exec( std::string in_cmd,
+                       std::function< int*( void*, int, char**, char** ) > callback = nullptr ) override
     {
         FATAL_STD_STREAM_LOG( this->m_logger ) << "This is an invalid function."
-                                                        << "%n"
-                                                        << "%0";
+                                               << "%n"
+                                               << "%0";
         return false;
     } /* 运行数据库命令 */
 
     /* 因为leveldb为键值形式的数据库，提供了put，get接口，无需使用命令操作，也就无需对字符串进行格式化，于是删除了这个函数 */
-    virtual std::string format( const char* pattern, ... ) override 
+    virtual std::string format( const char* pattern, ... ) override
     {
         FATAL_STD_STREAM_LOG( this->m_logger ) << "This is an invalid function."
-                                                        << "%n"
-                                                        << "%0";
+                                               << "%n"
+                                               << "%0";
         return nullptr;
     }; /* 格式化数据库命令 */
 
-    void get_leveldbObj(leveldb::DB*& copy)
+    void get_leveldbObj( leveldb::DB*& copy )
     {
-        //std::cout << this->m_db;
+        // std::cout << this->m_db;
         copy = this->m_db;
     }
 
+    static std::string joinkey( std::vector< std::string > args )
+    {
+        std::string key = "";
+        for ( auto item : args )
+        {
+            key += item + "|";
+        }
+        return key;
+    }
+
+public:
 public:
     /* 加入一对键值 */
-    bool Put(std::string key, std::string value);
+    bool Put( std::string key, std::string value );
     /* 删除一条数据 */
-    bool Delete(std::string key);
+    bool Delete( std::string key );
     /* 读取一条数据 */
-    bool Get(std::string key, std::string& value);
+    bool Get( std::string key, std::string& value );
 
 private:
-    leveldb::DB* m_db;  /* 数据库对象 */
+    leveldb::DB* m_db;          /* 数据库对象 */
     leveldb::Options m_options; /* 设置 */
+};
+
+/*
+    由 leveldb 的键值存储抽象出集合
+ */
+class levelDBSet
+{
+public:
+    typedef std::shared_ptr< levelDBSet > ptr;
+
+    levelDBSet( levelDB::ptr db, std::string obj_name );
+    ~levelDBSet() = default;
+
+public:
+    /*
+        从结尾压入
+     */
+    bool push_back( std::string value );
+
+    /*
+        弹出最后一个
+     */
+    bool pop_back();
+
+    /*
+        从开始位置压入
+     */
+    bool push_front( std::string value );
+
+    /*
+        弹出第一个
+     */
+    bool pop_front();
+
+    /*
+        在指定位置插入一个
+     */
+    bool insert( size_t index, std::string value );
+
+    /*
+        删除指定位置的一个元素
+     */
+    bool remove( size_t index );
+
+    /*
+        删除指定键值
+     */
+    bool remove( std::string value );
+
+    /* 
+        查找
+     */
+    int32_t find(std::string value);
+
+    /*
+        长度
+     */
+    size_t size() { return this->length; }
+
+    /* 索引 */
+    std::string get( size_t index )
+    {
+        std::string key   = levelDB::joinkey( { this->m_name, S( index ) } );
+        std::string value = "";
+        this->m_db->Get( key, value );
+        return value;
+    }
+
+    /* 重载 operator [] */
+    std::string operator[]( size_t index ) { return this->get( index ); }
+
+private:
+    std::string m_name; /* 集合的名 */
+    size_t length;      /* 集合长 */
+    levelDB::ptr m_db;  /* 数据库 */
 };
 
 }

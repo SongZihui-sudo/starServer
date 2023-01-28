@@ -13,6 +13,7 @@
 #include "../../modules/protocol/protocol.h"
 #include "../../modules/setting/setting.h"
 #include "../../modules/socket/socket.h"
+#include "modules/consistency/lease/lease.h"
 
 namespace star
 {
@@ -72,15 +73,17 @@ public:
     static int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf );
 
 protected:
-    std::string m_name;              /* 服务器 */
-    Status m_status;                 /* 服务器状态 */
-    Logger::ptr m_logger;            /* 日志器 */
-    MSocket::ptr m_sock;             /* socket */
-    config::ptr m_settings;          /* 服务器设置 */
-    levelDB::ptr m_db;               /* 服务器数据库 */
-    protocol::ptr m_protocol;        /* 协议序列化 */
-    Scheduler::ptr server_scheduler; /* 服务器调度期 */
-    size_t buffer_size;              /* 缓冲区的大小 */
+    std::string m_name;                 /* 服务器 */
+    Status m_status;                    /* 服务器状态 */
+    Logger::ptr m_logger;               /* 日志器 */
+    MSocket::ptr m_sock;                /* socket */
+    config::ptr m_settings;             /* 服务器设置 */
+    levelDB::ptr m_db;                  /* 服务器数据库 */
+    protocol::ptr m_protocol;           /* 协议序列化 */
+    Scheduler::ptr server_scheduler;    /* 服务器调度期 */
+    size_t buffer_size;                 /* 缓冲区的大小 */
+    size_t connect_counter;             /* 当前的连接数 */
+    lease_manager::ptr m_lease_control; /* 租约管理器 */
 
 private:
     size_t max_connects; /* 最大连接数 */

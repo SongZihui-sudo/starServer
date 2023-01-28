@@ -26,6 +26,7 @@ void io_lock::lock_read( file_operation flag )
     }
     /* 上读锁 */
     this->m_signal = read_lock;
+    this->flag     = true;
 }
 
 void io_lock::lock_write( file_operation flag )
@@ -39,9 +40,18 @@ void io_lock::lock_write( file_operation flag )
     }
     /* 在上锁 */
     this->m_signal = write_lock;
+    this->flag     = true;
 }
 
-void io_lock::release_read() { this->m_signal = read_unlock; }
+void io_lock::release_read()
+{
+    this->m_signal = read_unlock;
+    this->flag     = false;
+}
 
-void io_lock::release_write() { this->m_signal = write_unlock; }
+void io_lock::release_write()
+{
+    this->m_signal = write_unlock;
+    this->flag     = false;
+}
 }

@@ -1,10 +1,13 @@
 #include "./master_server.h"
 #include "core/tcpServer/tcpserver.h"
 #include "modules/Scheduler/scheduler.h"
-#include "modules/io_lock/io_lock.h"
+#include "modules/db/database.h"
 #include "modules/log/log.h"
+#include "modules/meta_data/chunk.h"
+#include "modules/meta_data/file.h"
 #include "modules/meta_data/meta_data.h"
 #include "modules/protocol/protocol.h"
+#include "modules/setting/setting.h"
 #include "modules/socket/address.h"
 #include "modules/socket/socket.h"
 
@@ -13,14 +16,16 @@
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 namespace star
 {
 
-static std::map< std::string, file_meta_data > meta_data_tab; /* 元数据表 */
+static std::map< std::string, file::ptr > meta_data_tab; /* 元数据表 */
 static io_lock::ptr server_io_lock( new io_lock() );
 
 master_server::master_server( std::filesystem::path settings_path )
@@ -45,6 +50,18 @@ master_server::master_server( std::filesystem::path settings_path )
 
         this->print_logo();
         this->m_db->open();
+
+        /* 打开这两个集合 */
+        file_name_set.reset( new levelDBSet( this->m_db, "file_name_set" ) );
+        file_path_set.reset( new levelDBSet( this->m_db, "file_path_set" ) );
+
+        /* 初始化元数据表 */
+        for ( size_t i = 0; i < file_name_set->size(); i++ )
+        {
+            file::ptr new_file(
+            new file( file_name_set->get( i ), file_path_set->get( i ), this->max_chunk_size ) );
+            meta_data_tab[file_name_set->get( i )] = new_file;
+        }
     }
     catch ( std::exception e )
     {
@@ -53,37 +70,25 @@ master_server::master_server( std::filesystem::path settings_path )
     };
 }
 
-bool master_server::find_file_meta_data( file_meta_data& data, std::string f_name, std::string f_path )
+bool master_server::find_file_meta_data( std::vector< std::string >& res, std::string f_name, std::string f_path )
 {
     for ( auto item : meta_data_tab )
     {
-        if ( item.first == f_name && item.second.f_path == f_path )
+        if ( item.first == f_name && item.second->get_path() == f_path )
         {
-            data = item.second;
+            for ( size_t i = 0; i < item.second->chunks_num(); i++ )
+            {
+                item.second->open( this->m_db );
+                item.second->read_chunk_meta_data( i, res );
+                item.second->close();
+            }
+
             return true;
         }
     }
 
     ERROR_STD_STREAM_LOG( this->m_logger )
     << "file: " << f_name << "find file failed！ %n what: File does not exist."
-    << "%n%0";
-    return false;
-}
-
-bool master_server::find_chunk_meta_data( std::string f_name, int index, chunk_meta_data& data )
-{
-    for ( auto item : meta_data_tab )
-    {
-        if ( item.first == f_name )
-        {
-            data = item.second.chunk_list[index];
-            return true;
-        }
-    }
-
-    ERROR_STD_STREAM_LOG( this->m_logger )
-    << "file: " << f_name << "index: " << std::to_string( index )
-    << "find chunk failed！ %n what: File does not exist."
     << "%n%0";
     return false;
 }
@@ -237,79 +242,61 @@ bool master_server::regist( std::string user_name, std::string pwd )
     return false;
 }
 
-void master_server::ask_chunk_meta_data()
+void master_server::heart_beat()
 {
-    protocol::Protocol_Struct t;
-    t.bit       = 106;
-    t.from      = this->m_sock->getLocalAddress()->toString();
-    t.file_name = "None";
-    t.path      = "None";
+    int i = 0;
+
+    INFO_STD_STREAM_LOG( this->m_logger ) << "%D"
+                                          << "Begin Check the chunk server!"
+                                          << "%n%0";
 
     /* 遍历 chunk server 列表，向 chunk server 发消息 */
-    for ( auto item : this->chunk_server_list )
+    try
     {
-        star::IPv4Address::ptr addr = star::IPv4Address::Create( item.addr.c_str(), item.port );
-
-        // sock->bind( addr );
-
-        if ( !this->m_sock->connect( addr ) )
+        for ( auto item : this->chunk_server_list )
         {
-            return;
-        }
-        tcpserver::send( this->m_sock, t );
 
-        // DEBUG_STD_STREAM_LOG( this->m_logger ) << this->m_sock->getLocalAddress()->toString() << "%n%0";
+            star::IPv4Address::ptr addr = star::IPv4Address::Create( item.addr.c_str(), item.port );
+            MSocket::ptr sock = star::MSocket::CreateTCP( addr );;
+            // sock->bind( addr );
 
-        protocol::ptr current_procotol = tcpserver::recv( this->m_sock, this->buffer_size );
-
-        /* 看是否接受成功 */
-        if ( !current_procotol )
-        {
-            FATAL_STD_STREAM_LOG( this->m_logger ) << "%D"
-                                                   << "Receive Message Error"
-                                                   << "%n%0";
-        }
-
-        protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
-        chunk_meta_data got_chunk;
-
-        /* 接受块的元数据 */
-        if ( cur.bit == 102 )
-        {
-            int j = 0;
-            int i = 0;
-
-            while ( i < cur.customize.size() )
+            if ( !sock->connect( addr ) )
             {
-                meta_data_tab[cur.customize[j]].chunk_list.clear();
-
-                meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
-                i                                      = i + 1;
-
-                meta_data_tab[cur.customize[j]].f_path = cur.customize[i];
-                i                                      = i + 1;
-
-                meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i] );
-                i = i + 1;
-
-                meta_data_tab[cur.customize[j]].num_chunk++;
-
-                size_t index = cur.from.find( ':' );
-                cur.from = cur.from.substr( 0, index ); /* 把 ： 后的端口号去掉 */
-                got_chunk.from = cur.from;
-
-                got_chunk.port  = std::stoi( cur.path );
-                got_chunk.index = std::stoi( cur.customize[i++] );
-
-                meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
-                j++;
+                /* 连接 chunk server 失败 */
+                this->chunk_server_connect_fail( i );
             }
-        }
 
-        this->m_sock->close();
+            sock->close();
+            i++;
+        }
     }
+    catch ( std::exception& e )
+    {
+        throw e;
+    }
+    INFO_STD_STREAM_LOG( this->m_logger ) << "%D"
+                                          << "Chack the chunk server End!"
+                                          << "%n%0";
 }
 
+void master_server::chunk_server_connect_fail( int index )
+{
+    if ( index < 0 || index > this->chunk_server_list.size() )
+    {
+        DEBUG_STD_STREAM_LOG( this->m_logger ) << "Index out of the range!"
+                                               << "%n%0";
+        return;
+    }
+
+    WERN_STD_STREAM_LOG( this->m_logger )
+    << "Chunk Server: " << this->chunk_server_list[index].addr << " is not available"
+    << "%n%0";
+    this->fail_chunk_server.push_back( this->chunk_server_list[index] );
+}
+
+/*
+    客户端请求指定文件的元数据
+*/
 void master_server::deal_with_101( std::vector< void* > args )
 {
     server_io_lock->lock_read( file_operation::read ); /* 上读锁 */
@@ -318,20 +305,18 @@ void master_server::deal_with_101( std::vector< void* > args )
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
     std::string file_name         = cur.file_name;
     std::string file_path         = cur.path;
-    bool flag = self->find_file_meta_data( got_file, file_name, file_path );
-    cur.clear();
-    cur.bit       = 107;
-    cur.from      = self->m_sock->getLocalAddress()->toString();
-    cur.file_name = file_name;
-    cur.path      = file_path;
+    std::vector< std::string > result;
+    bool flag = self->find_file_meta_data( result, file_name, file_path );
+    cur.reset( 107, self->m_sock->getLocalAddress()->toString(), file_name, file_path, 0, "", {} );
     if ( flag )
     {
         cur.data = "File Find!";
-        for ( auto item : meta_data_tab[file_name].chunk_list )
+        int i    = 0;
+        while ( i < result.size() )
         {
-            cur.customize.push_back( item.from );
-            cur.customize.push_back( std::to_string( item.port ) );
-            cur.customize.push_back( std::to_string( item.index ) );
+            cur.customize.push_back( result[++i] );
+            cur.customize.push_back( result[++i] );
+            cur.customize.push_back( result[++i] );
         }
     }
     else
@@ -343,69 +328,23 @@ void master_server::deal_with_101( std::vector< void* > args )
     tcpserver::send( remote_sock, cur );
 }
 
-void master_server::deal_with_102( std::vector< void* > args )
-{
-    server_io_lock->lock_write( file_operation::write ); /* 上写锁 */
-    chunk_meta_data got_chunk;
-    protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    size_t j                      = 0;
-    size_t i                      = 0;
-    size_t index                  = 0;
-
-    while ( i < cur.customize.size() )
-    {
-        meta_data_tab[cur.customize[j]].chunk_list.clear();
-
-        meta_data_tab[cur.customize[j]].f_name = cur.customize[i];
-        i                                      = i + 1;
-
-        meta_data_tab[cur.customize[j]].f_path = cur.customize[i];
-        i                                      = i + 1;
-
-        meta_data_tab[cur.customize[j]].f_size += std::stoi( cur.customize[i] );
-        i = i + 1;
-
-        meta_data_tab[cur.customize[j]].num_chunk++;
-
-        index          = cur.from.find( ':' );
-        cur.from       = cur.from.substr( 0, index ); /* 把 ： 后的端口号去掉 */
-        got_chunk.from = cur.from;
-
-        got_chunk.port  = std::stoi( cur.path );
-        got_chunk.index = std::stoi( cur.customize[i++] );
-
-        meta_data_tab[cur.customize[j]].chunk_list.push_back( got_chunk );
-        j++;
-    }
-
-    server_io_lock->release_write(); /* 解写锁 */
-}
-
+/*
+    客户端上传文件
+*/
 void master_server::deal_with_104( std::vector< void* > args )
 {
-    server_io_lock->lock_write( file_operation::write ); /* 上写锁 */
-    master_server* self = ( master_server* )args[0];
     protocol::ptr current_procotol;
+    master_server* self = ( master_server* )args[0];
     current_procotol.reset( ( protocol* )args[2] );
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    chunk_meta_data got_chunk;
-    // pthread_mutex_lock( &mutex );
-    std::string file_name = cur.file_name;
-    std::string file_path = cur.path;
-    got_chunk.f_name      = cur.file_name;
-    got_chunk.f_path      = cur.path;
-    got_chunk.data        = cur.data;
-    int32_t package_num   = std::stoi( cur.customize[0] );
-    got_chunk.index       = 0;
-    size_t j              = 0;
-    size_t k              = 0;
-    std::string temp_str;
 
-    int32_t gap
-    = int( meta_data_tab[cur.file_name].chunk_list.size() / self->chunk_server_list.size() );
+    int32_t package_num = std::stoi( cur.customize[0] );
+    size_t j            = 0;
+    size_t k            = 0;
+    std::string temp_str;
+    int32_t gap = int( meta_data_tab[cur.file_name]->chunks_num() / self->chunk_server_list.size() );
 
     /* 接受数据包 */
-
     for ( size_t i = 0; i < package_num; i++ )
     {
         if ( i )
@@ -426,35 +365,50 @@ void master_server::deal_with_104( std::vector< void* > args )
 
         if ( j < self->chunk_server_list.size() )
         {
-
-            cur.clear();
             cur = current_procotol->get_protocol_struct();
+            /* 接收到的文件数据 */
+            std::string file_name = cur.file_name;
+            std::string file_path = cur.path;
+            std::string data      = cur.data;
+            size_t index          = std::stoi( cur.customize[0] );
 
-            got_chunk.f_name = cur.file_name;
-            got_chunk.f_path = cur.path;
-            got_chunk.data   = cur.data;
-            got_chunk.index  = std::stoi( cur.customize[0] );
+            /* chunk server的空间不够 */
+            if ( self->chunk_server_list[j].space < data.size() )
+            {
+                continue;
+            }
 
+            /* 拷贝副本 */
             for ( size_t ind = 0; ind < self->copys; ind++ )
             {
-                cur.clear();
-                cur.bit       = 108;
-                cur.file_name = got_chunk.f_name;
+                /* 打开一个文件 */
+                file::ptr cur_recv_file( new file( file_name, file_path, self->max_chunk_size ) );
 
                 if ( ind )
                 {
                     /* 副本发往不同的 chunk 服务器 */
-                    cur.file_name = "copy-" + S( ind ) + "-" + got_chunk.f_name;
+                    cur.file_name = "copy-" + S( ind ) + "-" + file_name;
                     j++;
                     if ( j > self->chunk_server_list.size() )
                     {
                         j = 0;
                     }
+                    cur_recv_file.reset( new file( file_name, file_path, self->max_chunk_size ) );
                 }
+                cur_recv_file->open( self->m_db );
+                /* 追加一个块 */
+                cur_recv_file->record_chunk_meta_data( cur_recv_file->chunks_num(), /* 记录下元数据 */
+                                                       self->chunk_server_list[j].addr,
+                                                       self->chunk_server_list[j].port );
+                cur_recv_file->close();
 
-                cur.path = got_chunk.f_path;
-                cur.data = got_chunk.data;
-                cur.customize.push_back( S( got_chunk.index ) );
+                meta_data_tab[file_name] = cur_recv_file; /* 加入表中 */
+                std::string all_file_name, all_file_path;
+                self->file_name_set->push_back( file_name ); /* 加入新的文件名 */
+                self->file_path_set->push_back( file_path ); /* 加入新的路径名 */
+
+                cur.reset( 108, "", file_name, file_path, 0, data, {} );
+                cur.customize.push_back( S( index ) );
 
                 IPAddress::ptr addr
                 = star::IPv4Address::Create( self->chunk_server_list[j].addr.c_str(),
@@ -505,27 +459,13 @@ void master_server::deal_with_104( std::vector< void* > args )
         }
     }
 
-    // pthread_mutex_unlock( &mutex );
-
-    try
-    {
-        cur.clear();
-        cur.bit       = 131;
-        cur.from      = self->m_sock->getLocalAddress()->toString();
-        cur.file_name = file_name;
-        cur.path      = file_path;
-        cur.data      = temp_str;
-
-        tcpserver::send( remote_sock, cur );
-        server_io_lock->release_write(); /* 解写锁 */
-        // sleep( 5 );
-    }
-    catch ( std::exception& e )
-    {
-        throw e.what();
-    }
+    cur.reset( 131, self->m_sock->getLocalAddress()->toString(), "", "", 0, temp_str, {} );
+    tcpserver::send( remote_sock, cur );
 }
 
+/*
+    修改文件路径
+*/
 void master_server::deal_with_117( std::vector< void* > args )
 {
     server_io_lock->lock_write( file_operation::write ); /* 上写锁 */
@@ -535,23 +475,24 @@ void master_server::deal_with_117( std::vector< void* > args )
     std::string file_name         = cur.file_name;
     std::string file_path         = cur.path;
     std::string file_new_path     = cur.customize[0];
-    chunk_meta_data got_chunk;
-    file_meta_data got_file;
-    meta_data_tab[file_name].f_path = file_new_path;
-    got_file                        = meta_data_tab[file_name];
+    std::string res               = "ok";
+    file::ptr cur_file            = meta_data_tab[file_name];
+    if ( !cur_file->move( file_new_path ) )
+    {
+        res = "false";
+    }
+
     protocol::ptr current_procotol;
     current_procotol.reset( ( protocol* )args[2] );
 
-    for ( auto item : got_file.chunk_list )
+    for ( auto item : cur_file->get_chunk_list() )
     {
-        cur.bit       = 122;
-        cur.from      = self->m_sock->getLocalAddress()->toString();
-        cur.file_name = file_name;
-        cur.path      = file_path;
+        cur.reset(
+        122, self->m_sock->getLocalAddress()->toString(), file_name, file_path, 0, "", {} );
         cur.customize.clear();
         cur.customize.push_back( file_new_path );
-        cur.customize.push_back( std::to_string( item.index ) );
-        star::IPv4Address::ptr addr = star::IPv4Address::Create( item.from.c_str(), item.port );
+        cur.customize.push_back( std::to_string( item->get_index() ) );
+        star::IPv4Address::ptr addr = star::IPv4Address::Create( item->addr.c_str(), item->port );
         star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
 
         if ( !sock->connect( addr ) )
@@ -584,14 +525,7 @@ void master_server::deal_with_117( std::vector< void* > args )
         }
     }
 
-    pthread_mutex_unlock( &mutex );
-
-    cur.clear();
-    cur.bit       = 125;
-    cur.file_name = file_name;
-    cur.path      = file_new_path;
-    cur.data      = "true";
-
+    cur.reset( 125, "", file_name, file_new_path, 0, res, {} );
     server_io_lock->release_write(); /* 解写锁 */
     tcpserver::send( remote_sock, cur );
 }
@@ -648,11 +582,15 @@ void master_server::deal_with_126( std::vector< void* > args )
     cur.file_name = "All file Meta data";
     cur.from      = self->m_sock->getLocalAddress()->toString();
     cur.data      = "None";
-    for ( auto item : meta_data_tab )
+    std::string all_file_name, all_file_path;
+    for ( size_t i = 0; i < self->file_name_set->size(); i++ )
     {
-        cur.customize.push_back( item.second.f_name );
-        cur.customize.push_back( item.second.f_path );
+        cur.customize.push_back( self->file_name_set->get( i ) );
+        cur.customize.push_back( self->file_path_set->get( i ) );
     }
+
+    cur.customize.push_back( all_file_name );
+    cur.customize.push_back( all_file_path );
 
     server_io_lock->release_read();
     /* 给客户端返回消息 */

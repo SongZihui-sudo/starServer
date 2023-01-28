@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace star
 {
@@ -39,6 +40,44 @@ public:
             data.clear();
             customize.clear();
         }
+
+        Protocol_Struct() {}
+
+        Protocol_Struct( int bit,
+                         std::string from,
+                         std::string file_name,
+                         std::string path,
+                         int package_size,
+                         std::string data,
+                         std::vector< std::string > customize )
+        {
+            this->bit          = bit;
+            this->from         = from;
+            this->file_name    = file_name;
+            this->path         = path;
+            this->package_size = package_size;
+            this->data         = data;
+            this->customize    = customize;
+        }
+
+        void reset( int bit,
+                         std::string from,
+                         std::string file_name,
+                         std::string path,
+                         int package_size,
+                         std::string data,
+                         std::vector< std::string > customize )
+        {
+            this->clear();
+            this->bit          = bit;
+            this->from         = from;
+            this->file_name    = file_name;
+            this->path         = path;
+            this->package_size = package_size;
+            this->data         = data;
+            this->customize    = customize;
+        }
+
     };
 
 public:

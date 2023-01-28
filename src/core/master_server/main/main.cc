@@ -11,9 +11,8 @@ star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
 
 void run()
 {
-    /* 询问块的信息 */
-    cs->bind();
-    cs->ask_chunk_meta_data();
+    /* 探测chunk server是否在线 */
+    cs->heart_beat();
     cs->bind();
     cs->wait( cs->respond, cs.get() );
 }

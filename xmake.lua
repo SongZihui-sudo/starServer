@@ -14,7 +14,8 @@ includes("./src/core/chunk_server")
 includes("./src/core/master_server")
 includes("./src/core/tcpServer")
 includes("./src/modules/Scheduler/mods/timer")
-includes("./src/modules/io_lock")
+includes("./src/modules/consistency/io_lock")
+includes("./src/modules/meta_data")
 
 add_includedirs("./src/")
 

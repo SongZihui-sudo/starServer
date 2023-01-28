@@ -8,9 +8,13 @@
 #include "./database.h"
 #include "../log/log.h"
 
+#include <asm-generic/errno.h>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace star
 {
@@ -30,8 +34,8 @@ bool sqlite::open()
     }
 
     INFO_STD_STREAM_LOG( this->m_logger ) << "Open database successfully"
-                                                   << "%n"
-                                                   << "%0";
+                                          << "%n"
+                                          << "%0";
     return true;
 }
 
@@ -49,8 +53,8 @@ bool sqlite::close()
     }
 
     INFO_STD_STREAM_LOG( this->m_logger ) << "Close database successfully"
-                                                   << "%n"
-                                                   << "%0";
+                                          << "%n"
+                                          << "%0";
     return true;
 }
 
@@ -66,14 +70,14 @@ bool sqlite::exec( std::string in_cmd, std::function< int*( void*, int, char**, 
     if ( flag != SQLITE_OK )
     {
         FATAL_STD_STREAM_LOG( this->m_logger ) << "SQL error:" << zErrMsg << "%n"
-                                                        << "%0";
+                                               << "%0";
         sqlite3_free( zErrMsg );
         return false;
     }
 
     INFO_STD_STREAM_LOG( this->m_logger ) << "Operation done successfully"
-                                                   << "%n"
-                                                   << "%0";
+                                          << "%n"
+                                          << "%0";
     return true;
 }
 
@@ -155,14 +159,13 @@ bool levelDB::open()
     if ( status.ok() )
     {
         INFO_STD_STREAM_LOG( this->m_logger ) << "Open database successfully"
-                                                       << "%n"
-                                                       << "%0";
+                                              << "%n"
+                                              << "%0";
         return true;
     }
 
-    FATAL_STD_STREAM_LOG( this->m_logger )
-    << "Can't open database:" << status.ToString() << "%n"
-    << "%0";
+    FATAL_STD_STREAM_LOG( this->m_logger ) << "Can't open database:" << status.ToString() << "%n"
+                                           << "%0";
     return false;
 }
 
@@ -181,49 +184,236 @@ bool levelDB::Put( std::string key, std::string value )
     if ( status.ok() )
     {
         INFO_STD_STREAM_LOG( this->m_logger ) << "Put Operation done successfully"
-                                                       << "%n"
-                                                       << "%0";
+                                              << "%n"
+                                              << "%0";
         return true;
     }
 
     FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Put Error:" << status.ToString() << "%n"
-                                                    << "%0";
+                                           << "%0";
     return false;
 }
 
-bool levelDB::Delete(std::string key)
+bool levelDB::Delete( std::string key )
 {
     /* 不存在立即删除 */
-    leveldb::Status status = this->m_db->Delete(leveldb::WriteOptions(), key);
+    leveldb::Status status = this->m_db->Delete( leveldb::WriteOptions(), key );
 
     if ( status.ok() )
     {
         INFO_STD_STREAM_LOG( this->m_logger ) << "Delete Operation done successfully"
-                                                       << "%n"
-                                                       << "%0";
+                                              << "%n"
+                                              << "%0";
         return true;
     }
 
     FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Delete Error:" << status.ToString() << "%n"
-                                                    << "%0";
+                                           << "%0";
     return false;
 }
 
-bool levelDB::Get(std::string key, std::string& value)
+bool levelDB::Get( std::string key, std::string& value )
 {
-    leveldb::Status status = this->m_db->Get(leveldb::ReadOptions(), key, &value);
+    leveldb::Status status = this->m_db->Get( leveldb::ReadOptions(), key, &value );
 
     if ( status.ok() )
     {
         INFO_STD_STREAM_LOG( this->m_logger ) << "Get Operation done successfully"
-                                                       << "%n"
-                                                       << "%0";
+                                              << "%n"
+                                              << "%0";
         return true;
     }
 
     FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Get Error:" << status.ToString() << "%n"
-                                                    << "%0";
+                                           << "%0";
     return false;
+}
+
+levelDBSet::levelDBSet( levelDB::ptr db, std::string obj_name )
+{
+    this->m_db      = db;
+    this->m_name    = obj_name;
+    std::string len = "";
+    std::string key = levelDB::joinkey( { obj_name, "length" } );
+    this->m_db->Get( key, len );
+    if ( !len.empty() )
+    {
+        this->length = std::stoi( len );
+    }
+    else
+    {
+        this->length = 0;
+    }
+}
+
+bool levelDBSet::push_back( std::string value )
+{
+    std::string key = levelDB::joinkey( { this->m_name, S( this->length ) } ); /* 拼一下键值 */
+    bool flag = this->m_db->Put( key, value );
+    if ( flag )
+    {
+        this->length++;
+    }
+    key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return flag;
+}
+
+bool levelDBSet::pop_back()
+{
+    std::string key = levelDB::joinkey( { this->m_name, S( this->length ) } ); /* 拼一下键值 */
+    bool flag = this->m_db->Delete( key );
+    if ( flag )
+    {
+        this->length--;
+    }
+    key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return flag;
+}
+
+bool levelDBSet::push_front( std::string value )
+{
+    for ( size_t i = this->length; i > 0; i-- )
+    {
+        std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
+        std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
+        std::string value = "";
+        bool flag         = this->m_db->Get( key2, value );
+        if ( !flag )
+        {
+            return false;
+        }
+        flag = this->m_db->Put( key1, value );
+        if ( !flag )
+        {
+            return false;
+        }
+    }
+    std::string key = levelDB::joinkey( { this->m_name, S( 0 ) } ); /* 拼一下键值 */
+    bool flag       = this->m_db->Put( key, value );
+    if ( !flag )
+    {
+        return false;
+    }
+    this->length++;
+    key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return true;
+}
+
+bool levelDBSet::pop_front()
+{
+    for ( size_t i = 0; i < this->length; i++ )
+    {
+        std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
+        std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
+        std::string value = "";
+        bool flag         = this->m_db->Get( key1, value );
+        if ( !flag )
+        {
+            return false;
+        }
+        flag = this->m_db->Put( key2, value );
+        if ( !flag )
+        {
+            return false;
+        }
+    }
+
+    this->length--;
+    std::string key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return true;
+}
+
+bool levelDBSet::insert( size_t index, std::string value )
+{
+    for ( size_t i = this->length; i > 0; i-- )
+    {
+        std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
+        std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
+        std::string value = "";
+        bool flag         = this->m_db->Get( key2, value );
+        if ( !flag )
+        {
+            return false;
+        }
+        flag = this->m_db->Put( key1, value );
+        if ( !flag )
+        {
+            return false;
+        }
+    }
+
+    std::string key = levelDB::joinkey( { this->m_name, S( index ) } ); /* 拼一下键值 */
+    bool flag = this->m_db->Put( key, value );
+    if ( !flag )
+    {
+        return false;
+    }
+
+    this->length++;
+    key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return true;
+}
+
+bool levelDBSet::remove( size_t index )
+{
+    for ( size_t i = index; i < this->length; i++ )
+    {
+        std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
+        std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
+        std::string value = "";
+        bool flag         = this->m_db->Get( key1, value );
+        if ( !flag )
+        {
+            return false;
+        }
+        flag = this->m_db->Put( key2, value );
+        if ( !flag )
+        {
+            return false;
+        }
+    }
+
+    this->length--;
+    std::string key = levelDB::joinkey( { this->m_name, "length" } );
+    this->m_db->Put( key, S( length ) );
+    return true;
+}
+
+bool levelDBSet::remove( std::string value )
+{
+    int32_t index = this->find( value );
+    if ( index > 0 )
+    {
+        return this->remove( index );
+    }
+    return false;
+}
+
+int32_t levelDBSet::find( std::string value )
+{
+    int32_t index = -1;
+    for ( size_t i = 0; i < this->length; i++ )
+    {
+        std::string key = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
+        std::string temp = "";
+        bool flag        = this->m_db->Get( key, temp );
+        if ( !flag )
+        {
+            return false;
+        }
+        if ( temp == value )
+        {
+            index = i;
+            return index;
+        }
+    }
+
+    return index;
 }
 
 }

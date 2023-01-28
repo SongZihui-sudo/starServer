@@ -2,7 +2,9 @@
 #define MASTER_SERVER_H
 
 #include "core/tcpServer/tcpserver.h"
+#include "modules/db/database.h"
 #include "modules/log/log.h"
+#include "modules/meta_data/chunk.h"
 #include "modules/protocol/protocol.h"
 #include "modules/socket/socket.h"
 
@@ -42,14 +44,11 @@ public:
     virtual ~master_server() = default;
 
 public:
-    /* 向 chunk server 询问 块元数据 */
-    virtual void ask_chunk_meta_data();
+    /* 心跳机制，向 chunk server 发消息，判断其是否存在 */
+    virtual void heart_beat();
 
     /* 查找指定文件的元数据信息 */
-    virtual bool find_file_meta_data( file_meta_data& data, std::string f_name, std::string f_path );
-
-    /* 查找 chunk 的元数据信息 */
-    virtual bool find_chunk_meta_data( std::string f_name, int index, chunk_meta_data& data );
+    virtual bool find_file_meta_data( std::vector< std::string >& res, std::string f_name, std::string f_path );
 
 public:
     /* 用户登录认证 */
@@ -65,8 +64,6 @@ protected:
     /* 响应函数 */
     static void deal_with_101( std::vector< void* > args ); /* 客户端请求指定文件的元数据 */
 
-    static void deal_with_102( std::vector< void* > args ); /* 更新文件元数据表 */
-
     static void deal_with_104( std::vector< void* > args ); /* 客户端上传文件 */
 
     static void deal_with_117( std::vector< void* > args ); /* 修改文件路径 */
@@ -80,7 +77,6 @@ protected:
     /* 消息映射函数表 */
     std::map< int32_t, std::function< void( std::vector< void* > ) > > message_funcs
     = { { 101, std::function< void( std::vector< void* > ) >( deal_with_101 ) },
-        { 102, std::function< void( std::vector< void* > ) >( deal_with_102 ) },
         { 104, std::function< void( std::vector< void* > ) >( deal_with_104 ) },
         { 117, std::function< void( std::vector< void* > ) >( deal_with_117 ) },
         { 119, std::function< void( std::vector< void* > ) >( deal_with_118 ) },
@@ -102,11 +98,17 @@ protected:
         << "%n%0";
     }
 
+    /* 连接chunk server失败的回调函数 */
+    void chunk_server_connect_fail( int index );
+
 private:
     size_t max_chunk_size;                              /* chunk 的最大大小  */
-    std::vector< chunk_server_info > chunk_server_list; /* chunk server 信息 */
+    std::vector< chunk_server_info > chunk_server_list; /* 所有的 chunk server 信息 */
+    std::vector< chunk_server_info > fail_chunk_server; /* 连接不上的chunk server */
     bool is_login = false;
-    size_t copys; /* 副本个数 */
+    size_t copys;                  /* 副本个数 */
+    levelDBSet::ptr file_name_set; /* 文件名列表 */
+    levelDBSet::ptr file_path_set; /* 文件路径列表 */
 };
 }
 

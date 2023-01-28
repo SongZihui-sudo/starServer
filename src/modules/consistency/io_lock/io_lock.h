@@ -1,8 +1,8 @@
 #ifndef CHUNK_LOCK_H
 #define CHUNK_LOCK_H
 
-#include <memory>
 #include <inttypes.h>
+#include <memory>
 
 #include "modules/meta_data/meta_data.h"
 
@@ -20,9 +20,9 @@ protected:
     };
 
 public:
-    typedef std::shared_ptr<io_lock> ptr;
+    typedef std::shared_ptr< io_lock > ptr;
 
-    io_lock() {};
+    io_lock(){};
     ~io_lock() = default;
 
     /* 当一个进程获得该文件的锁后，其他进程要访问这个文件要等待解锁 */
@@ -43,7 +43,11 @@ public:
     /* 如果文件被锁，锁的类型 */
     lock_type get_lock_type() { return this->m_lock_type; }
 
+    /* 是否被锁 */
+    bool is_lock() { return flag; };
+
 private:
+    bool flag;
     int32_t m_signal;      /* 信号 */
     int64_t m_fid;         /* 文件 id */
     lock_type m_lock_type; /* 锁的类型 */
