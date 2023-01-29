@@ -7,6 +7,7 @@ add_packages("jsoncpp")
 add_packages("libaco")
 
 target("tcpserver")
+    add_deps("service_manager")
     add_deps("scheduler")
     add_files("./*.cc")
     set_kind("static")

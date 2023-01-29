@@ -72,7 +72,7 @@ bool Address::Lookup( std::vector< Address::ptr >& result, const std::string& ho
     hints.ai_next      = NULL;
 
     std::string node;
-    const char* service = NULL;
+    const char* service_manager = NULL;
 
     //检查 ipv6address serivce
     if ( !host.empty() && host[0] == '[' )
@@ -83,7 +83,7 @@ bool Address::Lookup( std::vector< Address::ptr >& result, const std::string& ho
             // TODO check out of range
             if ( *( endipv6 + 1 ) == ':' )
             {
-                service = endipv6 + 2;
+                service_manager = endipv6 + 2;
             }
             node = host.substr( 1, endipv6 - host.c_str() - 1 );
         }
@@ -92,13 +92,13 @@ bool Address::Lookup( std::vector< Address::ptr >& result, const std::string& ho
     //检查 node serivce
     if ( node.empty() )
     {
-        service = ( const char* )memchr( host.c_str(), ':', host.size() );
-        if ( service )
+        service_manager = ( const char* )memchr( host.c_str(), ':', host.size() );
+        if ( service_manager )
         {
-            if ( !memchr( service + 1, ':', host.c_str() + host.size() - service - 1 ) )
+            if ( !memchr( service_manager + 1, ':', host.c_str() + host.size() - service_manager - 1 ) )
             {
-                node = host.substr( 0, service - host.c_str() );
-                ++service;
+                node = host.substr( 0, service_manager - host.c_str() );
+                ++service_manager;
             }
         }
     }
@@ -107,7 +107,7 @@ bool Address::Lookup( std::vector< Address::ptr >& result, const std::string& ho
     {
         node = host;
     }
-    int error = getaddrinfo( node.c_str(), service, &hints, &results );
+    int error = getaddrinfo( node.c_str(), service_manager, &hints, &results );
     if ( error )
     {
         DEBUG_STD_STREAM_LOG( g_logger )

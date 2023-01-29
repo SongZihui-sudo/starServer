@@ -8,6 +8,8 @@ add_packages("libaco")      -- 使用 libaco 库
 add_links("sqlite3")
 
 target("master_server")
+    add_deps("timer")
+    add_deps("lease")
     add_deps("file")
     add_deps("chunk")
     add_deps("io_lock")

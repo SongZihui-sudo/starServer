@@ -21,20 +21,22 @@
 
 namespace star
 {
+static Logger::ptr g_logger( STAR_NAME( "master_logger" ) );
 /*
     master server 服务器
 */
 class master_server : public tcpserver
 {
-protected:
+public:
     /*
         chunk server 信息
      */
     struct chunk_server_info
     {
-        size_t space;      /* 存储空间 */
-        std::string addr;  /* ip 地址 */
-        std::int64_t port; /* 端口 */
+        size_t space;                   /* 存储空间 */
+        std::string addr;               /* ip 地址 */
+        std::int64_t port;              /* 端口 */
+        int64_t current_operation_time; /* 最近一次操作的时间 */
     };
 
 public:
@@ -44,11 +46,23 @@ public:
     virtual ~master_server() = default;
 
 public:
-    /* 心跳机制，向 chunk server 发消息，判断其是否存在 */
-    virtual void heart_beat();
+    /* 心跳机制，定时向 chunk server 发消息，判断其是否在线 */
+    static void heart_beat();
+
+    /* 向 chunk server 发消息，判断其是否存在 */
+    static void check_chunk_server();
+
+    /* 连接chunk server失败的回调函数 */
+    static void chunk_server_connect_fail( int index );
 
     /* 查找指定文件的元数据信息 */
     virtual bool find_file_meta_data( std::vector< std::string >& res, std::string f_name, std::string f_path );
+
+    /* 使用副本替换失联 chunk server 上的 chunk */
+    void replace_unconnect_chunk();
+
+    /* 与 chunk server 连接上后，通过副本同步 chunk */
+    static void sync_chunk(chunk_server_info cur_server);
 
 public:
     /* 用户登录认证 */
@@ -85,10 +99,10 @@ protected:
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );
 
-    /* 打印一个字符画 */
+    /* 打印一个字符画 logo */
     void print_logo()
     {
-        DOTKNOW_STD_STREAM_LOG( this->m_logger )
+        DOTKNOW_STD_STREAM_LOG( g_logger )
         << "\n  ____    _                    _____       \n"
         << " / ___|  | |_    __ _   _ __  |  ___|  ___ \n"
         << " \\___ \\  | __|  / _` | | '__| | |_    / __|\n"
@@ -98,17 +112,12 @@ protected:
         << "%n%0";
     }
 
-    /* 连接chunk server失败的回调函数 */
-    void chunk_server_connect_fail( int index );
-
 private:
-    size_t max_chunk_size;                              /* chunk 的最大大小  */
-    std::vector< chunk_server_info > chunk_server_list; /* 所有的 chunk server 信息 */
-    std::vector< chunk_server_info > fail_chunk_server; /* 连接不上的chunk server */
+    size_t max_chunk_size; /* chunk 的最大大小  */
     bool is_login = false;
-    size_t copys;                  /* 副本个数 */
-    levelDBSet::ptr file_name_set; /* 文件名列表 */
-    levelDBSet::ptr file_path_set; /* 文件路径列表 */
+    size_t copys;                    /* 副本个数 */
+    static levelDBList::ptr file_name_list; /* 文件名列表 */
+    static levelDBList::ptr file_path_set;  /* 文件路径列表 */
 };
 }
 

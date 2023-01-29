@@ -2,6 +2,7 @@
 #define FILE_H
 
 #include "meta_data.h"
+#include "modules/common/common.h"
 #include "modules/consistency/io_lock/io_lock.h"
 #include "modules/db/database.h"
 #include "modules/meta_data/chunk.h"
@@ -81,45 +82,13 @@ public:
     }
 
     /* 记录块的元数据 */
-    bool record_chunk_meta_data( int index, std::string addr, int16_t port )
-    {
-        if ( index < 0 || index > this->chunks.size() )
-        {
-            return false;
-        }
-        this->chunks[index]->addr = addr;
-        this->chunks[index]->port = port;
-        this->chunks[index]->open( this->m_db );
-        bool write_flag           = this->chunks[index]->record_meta_data();
-        this->chunks[index]->close();
-        return write_flag;
-    }
+    bool record_chunk_meta_data( int index, std::string addr, int16_t port );
 
     /* 读块的元数据 */
-    bool read_chunk_meta_data( int index, std::vector< std::string >& res )
-    {
-        if ( index < 0 || index > this->chunks.size() )
-        {
-            return false;
-        }
-        this->chunks[index]->open( this->m_db );
-        bool read_flag = this->chunks[index]->read_meta_data( res );
-        this->chunks[index]->close();
-        return read_flag;
-    }
+    bool read_chunk_meta_data( int index, std::vector< std::string >& res );
 
     /* 删块的元数据 */
-    bool del_chunk_meta_data( int index )
-    {
-        if ( index < 0 || index > this->chunks.size() )
-        {
-            return false;
-        }
-        this->chunks[index]->open( this->m_db );
-        this->chunks[index]->del_meta_data();
-        this->chunks[index]->close();
-        return true;
-    }
+    bool del_chunk_meta_data( int index );
 
     /* 获取路径 */
     std::string get_path() { return this->m_path; }
@@ -140,6 +109,7 @@ public:
     std::vector< chunk::ptr > get_chunk_list() { return this->chunks; }
 
 private:
+    int64_t current_operation_time;   /* 最近一次操作的时间戳 */
     levelDB::ptr m_db;                /* 指向数据库的指针 */
     bool open_flag;                   /* 是否打开 */
     std::vector< chunk::ptr > chunks; /* chunk 信息 */

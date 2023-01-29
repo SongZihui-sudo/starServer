@@ -1,9 +1,11 @@
 #include "./timer.h"
 #include "../../../log/log.h"
+#include "modules/common/common.h"
 #include "modules/thread/thread.h"
 
 #include <cstdint>
 #include <functional>
+#include <pthread.h>
 #include <type_traits>
 
 namespace star
@@ -43,8 +45,8 @@ void Timer::start()
     while ( true )
     {
         int64_t current_time = getTime();
-        //DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-        //                                 << "%n%0";
+        // DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+        //                                  << "%n%0";
         /* 到达时间 */
         if ( current_time - start_time == secends )
         {
@@ -56,6 +58,22 @@ void Timer::start()
             break; /* 退出循环 */
         }
     }
+}
+
+void Timer::interrupt()
+{
+    /* 终止进程 */
+    Timer_thread->exit();
+    this->m_stop_time = getTime();
+}
+
+void Timer::stop()
+{
+    /* 终止进程 */
+    Timer_thread->exit();
+    this->m_stop_time = getTime();
+    /* 执行回调函数 */
+    callback_func();
 }
 
 }

@@ -1,6 +1,7 @@
 #include "./tcpserver.h"
 #include "../../modules/common/common.h"
 #include "modules/Scheduler/scheduler.h"
+#include "modules/db/database.h"
 #include "modules/log/log.h"
 #include "modules/protocol/protocol.h"
 
@@ -12,10 +13,12 @@
 
 namespace star
 {
-
 std::stack< void* > arg_ss;
 std::stack< MSocket::ptr > sock_ss;
 static Logger::ptr g_logger( STAR_NAME( "global_logger" ) );
+
+levelDB::ptr tcpserver::m_db = nullptr;
+size_t tcpserver::buffer_size = 0;
 
 tcpserver::tcpserver( std::filesystem::path settings_path )
 {
@@ -40,7 +43,8 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
 
     this->m_name = this->m_settings->get( "ServerName" ).asString();
 
-    this->m_logger.reset( STAR_NAME( "SERVER_LOGGER" ) );
+    int max_services = this->m_settings->get( "max_services" ).asInt();
+    this->m_service_manager.reset( new service_manager( max_services ) );
 }
 
 void tcpserver::wait( void respond(), void* self )
@@ -60,9 +64,9 @@ void tcpserver::wait( void respond(), void* self )
     this->m_sock->listen( this->max_connects );
 
     /* 阻塞线程，进行等待 */
-    INFO_STD_STREAM_LOG( this->m_logger ) << std::to_string( getTime() ) << " <----> "
-                                          << "Server Start Listening!"
-                                          << "%n%0";
+    INFO_STD_STREAM_LOG( g_logger ) << std::to_string( getTime() ) << " <----> "
+                                    << "Server Start Listening!"
+                                    << "%n%0";
 
     while ( true )
     {
@@ -72,7 +76,7 @@ void tcpserver::wait( void respond(), void* self )
             sock_ss.push( remote_sock );
             this->connect_counter++;
 
-            INFO_STD_STREAM_LOG( this->m_logger )
+            INFO_STD_STREAM_LOG( g_logger )
             << std::to_string( getTime() ) << " <----> "
             << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString() << "%n%0";
 
@@ -89,8 +93,8 @@ void tcpserver::wait( void respond(), void* self )
 
 void tcpserver::close()
 {
-    WERN_STD_STREAM_LOG( this->m_logger ) << "Server Exit, Code -1"
-                                          << "%n%0";
+    WERN_STD_STREAM_LOG( g_logger ) << "Server Exit, Code -1"
+                                    << "%n%0";
     exit( -1 );
 }
 
@@ -173,8 +177,8 @@ void tcpserver::bind()
     }
     else
     {
-        ERROR_STD_STREAM_LOG( this->m_logger ) << "Unknown address type！"
-                                               << "%n%0";
+        ERROR_STD_STREAM_LOG( g_logger ) << "Unknown address type！"
+                                         << "%n%0";
         return;
     }
 

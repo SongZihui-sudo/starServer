@@ -24,7 +24,7 @@ Threading::Threading( std::function< void() > func, const std::string& name )
 {
     this->m_name = name;
     this->func   = func;
-    if ( name.empty() )
+    if (  this->m_name.empty() )
     {
         m_name = "UNKNOW";
     }

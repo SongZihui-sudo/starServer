@@ -229,7 +229,7 @@ bool levelDB::Get( std::string key, std::string& value )
     return false;
 }
 
-levelDBSet::levelDBSet( levelDB::ptr db, std::string obj_name )
+levelDBList::levelDBList( levelDB::ptr db, std::string obj_name )
 {
     this->m_db      = db;
     this->m_name    = obj_name;
@@ -246,7 +246,7 @@ levelDBSet::levelDBSet( levelDB::ptr db, std::string obj_name )
     }
 }
 
-bool levelDBSet::push_back( std::string value )
+bool levelDBList::push_back( std::string value )
 {
     std::string key = levelDB::joinkey( { this->m_name, S( this->length ) } ); /* 拼一下键值 */
     bool flag = this->m_db->Put( key, value );
@@ -259,7 +259,7 @@ bool levelDBSet::push_back( std::string value )
     return flag;
 }
 
-bool levelDBSet::pop_back()
+bool levelDBList::pop_back()
 {
     std::string key = levelDB::joinkey( { this->m_name, S( this->length ) } ); /* 拼一下键值 */
     bool flag = this->m_db->Delete( key );
@@ -272,7 +272,7 @@ bool levelDBSet::pop_back()
     return flag;
 }
 
-bool levelDBSet::push_front( std::string value )
+bool levelDBList::push_front( std::string value )
 {
     for ( size_t i = this->length; i > 0; i-- )
     {
@@ -302,7 +302,7 @@ bool levelDBSet::push_front( std::string value )
     return true;
 }
 
-bool levelDBSet::pop_front()
+bool levelDBList::pop_front()
 {
     for ( size_t i = 0; i < this->length; i++ )
     {
@@ -327,7 +327,7 @@ bool levelDBSet::pop_front()
     return true;
 }
 
-bool levelDBSet::insert( size_t index, std::string value )
+bool levelDBList::insert( size_t index, std::string value )
 {
     for ( size_t i = this->length; i > 0; i-- )
     {
@@ -359,7 +359,7 @@ bool levelDBSet::insert( size_t index, std::string value )
     return true;
 }
 
-bool levelDBSet::remove( size_t index )
+bool levelDBList::remove( size_t index )
 {
     for ( size_t i = index; i < this->length; i++ )
     {
@@ -384,7 +384,7 @@ bool levelDBSet::remove( size_t index )
     return true;
 }
 
-bool levelDBSet::remove( std::string value )
+bool levelDBList::remove( std::string value )
 {
     int32_t index = this->find( value );
     if ( index > 0 )
@@ -394,7 +394,7 @@ bool levelDBSet::remove( std::string value )
     return false;
 }
 
-int32_t levelDBSet::find( std::string value )
+int32_t levelDBList::find( std::string value )
 {
     int32_t index = -1;
     for ( size_t i = 0; i < this->length; i++ )

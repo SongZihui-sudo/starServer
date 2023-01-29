@@ -20,19 +20,39 @@ class Timer
 public:
     typedef std::shared_ptr< Timer > ptr;
 
-    Timer( std::function< void( ) > cb, int32_t senc );
+    Timer( std::function< void() > cb, int32_t senc );
 
     ~Timer() = default;
 
 public:
-    /* 运行定时器 */
+    /*
+        运行定时器
+    */
     void run();
 
-    /* 开始计时 */
+    /*
+        开始计时
+    */
     static void start();
 
+    /*
+        打断计时
+    */
+    void interrupt();
+
+    /*
+        提前结束计时
+    */
+    void stop();
+
+    /*
+        获取停止时间
+    */
+    int64_t get_stop_time() { return this->m_stop_time; }
+
 private:
-    int32_t m_secends;                   /* 定时时间 */
+    int32_t m_secends;   /* 定时时间 */
+    int64_t m_stop_time; /* 停止时间 */
 };
 }
 

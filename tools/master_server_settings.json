@@ -1,27 +1,27 @@
 {
     "server": {
-        "address": "127.0.0.1",
+        "address": "192.168.139.128",
         "port": 23445
     },
     "chunk_server": [
         {
-            "address": "127.0.0.1",
+            "address": "192.168.139.128",
             "port": 7001
         },
         {
-            "address": "127.0.0.1",
+            "address": "192.168.139.128",
             "port": 7002
         },
         {
-            "address": "127.0.0.1",
+            "address": "192.168.139.128",
             "port": 7003
         },
         {
-            "address": "127.0.0.1",
+            "address": "192.168.139.128",
             "port": 7004
         },
         {
-            "address": "127.0.0.1",
+            "address": "192.168.139.128",
             "port": 7005
         }
     ],
@@ -31,5 +31,7 @@
     "BUffer_size": 4096,
     "Max_connects": 100,
     "Max_chunk_size": 1024,
-    "copy_num": 3
+    "copy_num": 3,
+    "default_lease_time": 60,
+    "max_services": 100
 }

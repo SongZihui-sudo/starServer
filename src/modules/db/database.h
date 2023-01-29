@@ -201,13 +201,13 @@ private:
 /*
     由 leveldb 的键值存储抽象出集合
  */
-class levelDBSet
+class levelDBList
 {
 public:
-    typedef std::shared_ptr< levelDBSet > ptr;
+    typedef std::shared_ptr< levelDBList > ptr;
 
-    levelDBSet( levelDB::ptr db, std::string obj_name );
-    ~levelDBSet() = default;
+    levelDBList( levelDB::ptr db, std::string obj_name );
+    ~levelDBList() = default;
 
 public:
     /*

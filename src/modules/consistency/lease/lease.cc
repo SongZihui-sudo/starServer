@@ -18,26 +18,33 @@ lease::lease( int32_t lease_times )
     this->m_timer.reset( new Timer( this->lease_invalid, lease_times ) );
     /* 启动一个定时器 */
     this->m_timer->run();
+    this->available = true;
     lease_flag = &this->available;
 }
 
 void lease::renew()
 {
-    this->available = true;
-    /* 重新启动定时器 */
-    this->m_timer.reset( new Timer( this->lease_invalid, this->m_secends ) );
+    if ( this->available )
+    {
+        /* 停止定时器 */
+        this->m_timer->interrupt();
+        /* 重新启动定时器 */
+        this->m_timer.reset( new Timer( this->lease_invalid, this->m_secends ) );
+    }
+    else
+    {
+        WERN_STD_STREAM_LOG(g_logger) << "The lease has expired and cannot be renewed." << "%n%0";
+    }
 }
 
 void lease::lease_invalid() { *lease_flag = false; }
 
-/* 授权新租约 */
 void lease_manager::new_lease()
 {
     lease::ptr new_lease( new lease( this->default_lease_time ) );
     this->lease_tab[new_lease->get_id()] = new_lease;
 }
 
-/* 销毁过期读租约 */
 void lease_manager::destory_lease( std::string id )
 {
 
@@ -55,7 +62,6 @@ void lease_manager::destory_lease( std::string id )
     }
 }
 
-/* 续约 */
 void lease_manager::renew_lease( std::string id )
 {
     if ( this->lease_tab[id] )
@@ -70,7 +76,6 @@ void lease_manager::renew_lease( std::string id )
                                      << "%n%0";
 }
 
-/* 检查租约是不是全部过期 */
 bool lease_manager::is_all_late()
 {
     for ( auto item : this->lease_tab )
@@ -81,6 +86,17 @@ bool lease_manager::is_all_late()
         }
     }
     return true;
+}
+
+void lease_manager::destory_invalid_lease()
+{
+    for ( auto item : this->lease_tab )
+    {
+        if ( !item.second->is_available() )
+        {
+            this->destory_lease(item.first);
+        }
+    }
 }
 
 }

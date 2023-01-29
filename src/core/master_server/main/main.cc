@@ -1,4 +1,5 @@
 #include "../master_server.h"
+#include "modules/thread/thread.h"
 
 #include <functional>
 #include <star.h>
@@ -11,8 +12,6 @@ star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
 
 void run()
 {
-    /* 探测chunk server是否在线 */
-    cs->heart_beat();
     cs->bind();
     cs->wait( cs->respond, cs.get() );
 }
@@ -23,6 +22,11 @@ void run()
 int main()
 {
     cs.reset( new star::master_server( "./master_server_settings.json" ) );
+
+    /* 注册一个服务 */
+    cs->get_service_manager()->register_service( "heart_beat",
+                                                 std::function< void() >( star::master_server::heart_beat ) );
+    cs->get_service_manager()->start();
 
     INFO_STD_STREAM_LOG( global_logger ) << std::to_string( getTime() ) << " <----> "
                                          << "Server initialization completed."

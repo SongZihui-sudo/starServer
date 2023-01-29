@@ -33,4 +33,6 @@
 
 #include "./modules/consistency/lease/lease.h"
 
+#include "./modules/service/service.h"
+
 #endif

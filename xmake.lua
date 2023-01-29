@@ -16,6 +16,8 @@ includes("./src/core/tcpServer")
 includes("./src/modules/Scheduler/mods/timer")
 includes("./src/modules/consistency/io_lock")
 includes("./src/modules/meta_data")
+includes("./src/modules/service")
+includes("./src/modules/consistency/lease")
 
 add_includedirs("./src/")
 

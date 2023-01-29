@@ -1,11 +1,9 @@
 add_rules("mode.debug", "mode.release")
 
-add_defines("XMAKE_LEASE")
+add_defines("XMAKE_SERVICE")
 
-add_packages("libaco")
-
-target("lease")
-    add_deps("timer")
+target("service_manager")
+    add_deps("Logger")
     set_kind("static")
     add_files("./*.cc")
 target_end()

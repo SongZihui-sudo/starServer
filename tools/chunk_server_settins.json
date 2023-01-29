@@ -1,11 +1,11 @@
 {
     "server" : 
     {
-        "address" : "127.0.0.1",
+        "address" : "192.168.139.128",
         "port" : 7001
     },
     "master_server": {
-        "address": "127.0.0.1",
+        "address": "192.168.139.128",
         "port": 23445
     },
     "AddressType": "IPv4",

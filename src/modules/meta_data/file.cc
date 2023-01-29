@@ -36,6 +36,7 @@ bool file::open( levelDB::ptr db_ptr )
     {
         return false;
     }
+    this->current_operation_time = getTime();
 
     return true;
 }
@@ -55,6 +56,8 @@ bool file::write( file_operation flag, std::string buffer, size_t index )
     this->chunks[index]->open( m_db );
     ret_flag = this->chunks[index]->write( flag, buffer );
     this->chunks[index]->close();
+    this->current_operation_time = getTime();
+
     return ret_flag;
 }
 
@@ -73,13 +76,16 @@ bool file::read( file_operation flag, std::string& buffer, size_t index )
     this->chunks[index]->open( m_db );
     ret_flag = this->chunks[index]->write( flag, buffer );
     this->chunks[index]->close();
+    this->current_operation_time = getTime();
+
     return ret_flag;
 }
 
 void file::close()
 {
     // this->m_db      = nullptr;
-    this->open_flag = false;
+    this->open_flag              = false;
+    this->current_operation_time = getTime();
 }
 
 bool file::append( file_operation flag, std::string buffer )
@@ -107,6 +113,7 @@ bool file::append( file_operation flag, std::string buffer )
         this->chunks.push_back( new_chunk );
         new_chunk->close();
     }
+    this->current_operation_time = getTime();
 
     return ret_flag;
 }
@@ -132,6 +139,8 @@ bool file::del( file_operation flag, size_t index )
     this->chunks[index]->open( this->m_db );
     this->chunks[index]->del( file_operation::write );
     this->chunks[index]->close();
+    this->current_operation_time = getTime();
+
     return true;
 }
 
@@ -172,6 +181,7 @@ bool file::move( std::string new_path )
             this->del( file_operation::write, i ); /* 删原来的块 */
         }
     }
+    this->current_operation_time = getTime();
 
     return true;
 }
@@ -190,7 +200,49 @@ bool file::copy( file::ptr other )
         }
         this->chunks.push_back( temp );
     }
+    this->current_operation_time = getTime();
 
+    return true;
+}
+
+bool file::record_chunk_meta_data( int index, std::string addr, int16_t port )
+{
+    if ( index < 0 || index > this->chunks.size() )
+    {
+        return false;
+    }
+    this->chunks[index]->addr = addr;
+    this->chunks[index]->port = port;
+    this->chunks[index]->open( this->m_db );
+    bool write_flag = this->chunks[index]->record_meta_data();
+    this->chunks[index]->close();
+    this->current_operation_time = getTime();
+    return write_flag;
+}
+
+bool file::read_chunk_meta_data( int index, std::vector< std::string >& res )
+{
+    if ( index < 0 || index > this->chunks.size() )
+    {
+        return false;
+    }
+    this->chunks[index]->open( this->m_db );
+    bool read_flag = this->chunks[index]->read_meta_data( res );
+    this->chunks[index]->close();
+    this->current_operation_time = getTime();
+    return read_flag;
+}
+
+bool file::del_chunk_meta_data( int index )
+{
+    if ( index < 0 || index > this->chunks.size() )
+    {
+        return false;
+    }
+    this->chunks[index]->open( this->m_db );
+    this->chunks[index]->del_meta_data();
+    this->chunks[index]->close();
+    this->current_operation_time = getTime();
     return true;
 }
 
