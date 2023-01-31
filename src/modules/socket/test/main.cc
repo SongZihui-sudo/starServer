@@ -118,7 +118,7 @@ void test2()
 void test3()
 {
     /* ipv4 地址 */
-    star::IPv4Address::ptr addr = star::IPv4Address::Create( "127.0.0.1", 7000 );
+    star::IPv4Address::ptr addr = star::IPv4Address::Create( "192.168.0.103", 7000 );
     /* 创建一个 socket */
     star::MSocket::ptr m_socket = star::MSocket::CreateTCP( addr );
     /* 绑定地址 */

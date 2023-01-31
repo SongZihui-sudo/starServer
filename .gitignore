@@ -13,5 +13,18 @@ master_server_settings.json
 
 .git-credentials
 
-tools/Chunk1_DB
+tools/Chunk_DB
 tools/Master_DB
+
+tools/demo/chunk_server1/Chunk_DB
+tools/demo/chunk_server1/Chunk_Server
+tools/demo/chunk_server2/Chunk_DB
+tools/demo/chunk_server2/Chunk_Server
+tools/demo/chunk_server3/Chunk_DB
+tools/demo/chunk_server3/Chunk_Server
+tools/demo/chunk_server4/Chunk_DB
+tools/demo/chunk_server4/Chunk_Server
+tools/demo/chunk_server5/Chunk_DB
+tools/demo/chunk_server5/Chunk_Server
+tools/demo/master_server/Master_DB
+tools/demo/master_server/master_server

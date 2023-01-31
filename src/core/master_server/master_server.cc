@@ -165,7 +165,7 @@ void master_server::replace_unconnect_chunk()
                             meta_data_tab[cur_file->get_name()]->close();
 
                             /* 结束 */
-                            return;
+                            break;
                         }
 
                         k++;
@@ -292,9 +292,12 @@ void master_server::respond()
         protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
 
         /* 执行相应的消息处理函数 */
-        self->message_funcs[cur.bit]( { self, &cur, &current_procotol } );
+        self->message_funcs[cur.bit]( { self, &cur, current_procotol.get(), remote_sock.get() } );
 
-        remote_sock->close();
+        if ( remote_sock->isConnected() )
+        {
+            remote_sock->close();
+        }
     }
     catch ( std::exception& e )
     {
@@ -475,7 +478,8 @@ void master_server::chunk_server_connect_fail( int index )
         return;
     }
 
-    WERN_STD_STREAM_LOG( g_logger ) << "Chunk Server: " << chunk_server_list[index].addr << " is not available"
+    WERN_STD_STREAM_LOG( g_logger ) << "Chunk Server: " << chunk_server_list[index].addr << ":"
+                                    << S( chunk_server_list[index].port ) << " is not available"
                                     << "%n%0";
     fail_chunk_server.push_back( chunk_server_list[index] );
 }
@@ -489,8 +493,10 @@ void master_server::deal_with_101( std::vector< void* > args )
     file_meta_data got_file;
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    std::string file_name         = cur.file_name;
-    std::string file_path         = cur.path;
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+    std::string file_name = cur.file_name;
+    std::string file_path = cur.path;
     std::vector< std::string > result;
     bool flag = self->find_file_meta_data( result, file_name, file_path );
     cur.reset( 107, self->m_sock->getLocalAddress()->toString(), file_name, file_path, 0, "", {} );
@@ -527,6 +533,8 @@ void master_server::deal_with_104( std::vector< void* > args )
     master_server* self = ( master_server* )args[0];
     current_procotol.reset( ( protocol* )args[2] );
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
 
     /* 等待租约全部过期 */
     while ( !self->m_lease_control->is_all_late() )
@@ -667,6 +675,8 @@ void master_server::deal_with_117( std::vector< void* > args )
     pthread_mutex_lock( &mutex );
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
 
     /* 等待租约全部过期 */
     while ( !self->m_lease_control->is_all_late() )
@@ -731,16 +741,21 @@ void master_server::deal_with_117( std::vector< void* > args )
     tcpserver::send( remote_sock, cur );
 }
 
+/*
+    用户认证
+*/
 void master_server::deal_with_118( std::vector< void* > args )
 {
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    std::string user_name         = cur.file_name;
-    std::string pwd               = cur.path;
-    bool flag                     = self->login( user_name, pwd );
-    cur.bit                       = 120;
-    cur.from                      = self->m_sock->getLocalAddress()->toString();
-    cur.file_name                 = user_name;
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+    std::string user_name = cur.file_name;
+    std::string pwd       = cur.path;
+    bool flag             = self->login( user_name, pwd );
+    cur.bit               = 120;
+    cur.from              = self->m_sock->getLocalAddress()->toString();
+    cur.file_name         = user_name;
     if ( flag )
     {
         cur.data = "true";
@@ -753,15 +768,19 @@ void master_server::deal_with_118( std::vector< void* > args )
     tcpserver::send( remote_sock, cur );
 }
 
+/*
+    注册用户认证信息
+*/
 void master_server::deal_with_119( std::vector< void* > args )
 {
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    std::string user_name         = cur.file_name;
-    std::string pwd               = cur.path;
-    bool flag                     = self->regist( user_name, pwd );
-    cur.bit                       = 121;
-    cur.file_name                 = user_name;
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+    std::string user_name = cur.file_name;
+    std::string pwd       = cur.path;
+    bool flag             = self->regist( user_name, pwd );
+    cur.reset( 121, "", user_name, "", 0, "", {} );
     if ( flag )
     {
         cur.data = "true";
@@ -770,13 +789,19 @@ void master_server::deal_with_119( std::vector< void* > args )
     {
         cur.data = "false";
     }
+
     tcpserver::send( remote_sock, cur );
 }
 
+/*
+    客户端请求已经上传的文件元数据 包含 文件名，路径
+*/
 void master_server::deal_with_126( std::vector< void* > args )
 {
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
 
     self->m_lease_control->destory_invalid_lease();
     self->m_lease_control->new_lease(); /* 颁发一个新租约 */

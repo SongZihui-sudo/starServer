@@ -140,17 +140,18 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
     protocoler->set_protocol_struct( buf );
     protocoler->Serialize();
 
+    /* 获得序列化后的字符串 */
+    std::string buffer = protocoler->toStr();
+
+
+    int flag = remote_sock->send( buffer.c_str(), buffer.size() );
+
     INFO_STD_STREAM_LOG( g_logger )
     << "****************** Send Message " << S( getTime() ) << " ******************"
     << "%n%0";
     protocoler->display();
     INFO_STD_STREAM_LOG( g_logger ) << "*************************************************"
                                     << "%n%0";
-
-    /* 获得序列化后的字符串 */
-    std::string buffer = protocoler->toStr();
-
-    int flag = remote_sock->send( buffer.c_str(), buffer.size() );
 
     return flag;
 }

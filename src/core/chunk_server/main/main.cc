@@ -11,7 +11,7 @@ star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
  */
 int main()
 {
-    cs.reset( ( new star::chunk_server( "./chunk_server_settins.json" ) ) );
+    cs.reset( ( new star::chunk_server( "./chunk_server_settings.json" ) ) );
     cs->bind();
     /* 新建一个线程，等待连接 */
 

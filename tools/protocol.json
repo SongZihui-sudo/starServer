@@ -1,6 +1,6 @@
 {
     "bit": 104,
-    "from": "127.0.0.1:7002",
+    "from": "192.168.0.103:7002",
     "file_name": "test",
     "path": "root",
     "data": "This a test file.",

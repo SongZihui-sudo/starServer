@@ -62,7 +62,7 @@ public:
     void replace_unconnect_chunk();
 
     /* 与 chunk server 连接上后，通过副本同步 chunk */
-    static void sync_chunk(chunk_server_info cur_server);
+    static void sync_chunk( chunk_server_info cur_server );
 
 public:
     /* 用户登录认证 */
@@ -93,7 +93,8 @@ protected:
     = { { 101, std::function< void( std::vector< void* > ) >( deal_with_101 ) },
         { 104, std::function< void( std::vector< void* > ) >( deal_with_104 ) },
         { 117, std::function< void( std::vector< void* > ) >( deal_with_117 ) },
-        { 119, std::function< void( std::vector< void* > ) >( deal_with_118 ) },
+        { 118, std::function< void( std::vector< void* > ) >( deal_with_118 ) },
+        { 119, std::function< void( std::vector< void* > ) >( deal_with_119 ) },
         { 126, std::function< void( std::vector< void* > ) >( deal_with_126 ) } };
 
     /* 加密用户密码 */
@@ -115,7 +116,7 @@ protected:
 private:
     size_t max_chunk_size; /* chunk 的最大大小  */
     bool is_login = false;
-    size_t copys;                    /* 副本个数 */
+    size_t copys;                           /* 副本个数 */
     static levelDBList::ptr file_name_list; /* 文件名列表 */
     static levelDBList::ptr file_path_set;  /* 文件路径列表 */
 };
