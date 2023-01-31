@@ -35,4 +35,8 @@
 
 #include "./modules/service/service.h"
 
+#include "./modules/meta_data/file.h"
+#include "./modules/meta_data/chunk.h"
+
+
 #endif

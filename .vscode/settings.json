@@ -96,5 +96,6 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "search.useIgnoreFiles": false
 }

@@ -24,7 +24,7 @@ Threading::Threading( std::function< void() > func, const std::string& name )
 {
     this->m_name = name;
     this->func   = func;
-    if (  this->m_name.empty() )
+    if ( this->m_name.empty() )
     {
         m_name = "UNKNOW";
     }
@@ -104,21 +104,17 @@ void* Threading::run( void* arg )
         std::function< void() > func;
         func.swap( thread->func );
         func();
+        thread->m_status      = FREE;
+        thread->task_end_time = getTime();
+        INFO_STD_STREAM_LOG( thread->t_logger )
+        << std::to_string( getTime() ) << " <----> "
+        << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Exit!"
+        << "%n%0";
     }
     catch ( std::exception& e )
     {
         throw e.what();
     }
-
-    thread->m_status = FREE;
-    thread->task_end_time = getTime();
-
-    INFO_STD_STREAM_LOG( thread->t_logger )
-    << std::to_string( getTime() ) << " <----> "
-    << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Exit!"
-    << "%n%0";
-
-    // sem_post( &thread->m_sem );
 
     return nullptr;
 }

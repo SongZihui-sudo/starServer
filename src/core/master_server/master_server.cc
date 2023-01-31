@@ -1,26 +1,16 @@
 #include "./master_server.h"
 #include "core/tcpServer/tcpserver.h"
-#include "modules/Scheduler/mods/timer/timer.h"
-#include "modules/Scheduler/scheduler.h"
-#include "modules/common/common.h"
-#include "modules/consistency/lease/lease.h"
-#include "modules/db/database.h"
 #include "modules/log/log.h"
-#include "modules/meta_data/chunk.h"
-#include "modules/meta_data/file.h"
-#include "modules/meta_data/meta_data.h"
-#include "modules/protocol/protocol.h"
-#include "modules/setting/setting.h"
-#include "modules/socket/address.h"
-#include "modules/socket/socket.h"
 
 #include "json/value.h"
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <star.h>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -36,7 +26,7 @@ std::vector< master_server::chunk_server_info > available_chunk_server = {}; /* 
 
 /* 打开这两个列表 */
 levelDBList::ptr master_server::file_name_list = nullptr;
-levelDBList::ptr master_server::file_path_set  = nullptr;
+levelDBList::ptr master_server::file_path_list = nullptr;
 
 static size_t default_max_chunk_size = 0;
 
@@ -66,15 +56,28 @@ master_server::master_server( std::filesystem::path settings_path )
 
         this->file_name_list.reset(
         new levelDBList( master_server::m_db, "file_name_list" ) );
-        this->file_path_set.reset( new levelDBList( master_server::m_db, "file_path_set" ) );
+        this->file_path_list.reset(
+        new levelDBList( master_server::m_db, "file_path_list" ) );
 
+        DEBUG_STD_STREAM_LOG( g_logger )
+        << "File Path list length: " << S( file_path_list->size() ) << "%n%0";
+        DEBUG_STD_STREAM_LOG( g_logger )
+        << "File name list length: " << S( file_name_list->size() ) << "%n%0";
+
+        DEBUG_STD_STREAM_LOG( g_logger ) << "Init file name and path list Begin!"
+                                         << "%n%0";
         /* 初始化元数据表 */
         for ( size_t i = 0; i < file_name_list->size(); i++ )
         {
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "Get File name: " << file_name_list->get( i )
+            << "Get File path: " << file_path_list->get( i ) << "%n%0";
             file::ptr new_file(
-            new file( file_name_list->get( i ), file_path_set->get( i ), this->max_chunk_size ) );
+            new file( file_name_list->get( i ), file_path_list->get( i ), this->max_chunk_size ) );
             meta_data_tab[file_name_list->get( i )] = new_file;
         }
+        DEBUG_STD_STREAM_LOG( g_logger ) << "Init file name and path list End!"
+                                         << "%n%0";
 
         /* 初始化租约管理器 */
         int32_t default_lease_time = this->m_settings->get( "default_lease_time" ).asInt();
@@ -114,6 +117,9 @@ bool master_server::find_file_meta_data( std::vector< std::string >& res, std::s
 
 void master_server::replace_unconnect_chunk()
 {
+    INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                    << "Chunk server connect error, replace chunk begin!"
+                                    << "%n%0";
     /* 遍历失联的服务器列表 */
     for ( auto item : fail_chunk_server )
     {
@@ -122,7 +128,7 @@ void master_server::replace_unconnect_chunk()
         {
             std::vector< std::string > res;
             file::ptr cur_file(
-            new file( file_name_list->get( i ), file_path_set->get( i ), this->max_chunk_size ) );
+            new file( file_name_list->get( i ), file_path_list->get( i ), this->max_chunk_size ) );
             /* 遍历文件进行查找 */
             for ( size_t j = 0; i < cur_file->chunks_num(); i++ )
             {
@@ -174,16 +180,24 @@ void master_server::replace_unconnect_chunk()
             }
         }
     }
+    INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                    << "Chunk server connect error, replace chunk End!"
+                                    << "%n%0";
 }
 
 void master_server::sync_chunk( chunk_server_info cur_server )
 {
+    INFO_STD_STREAM_LOG( g_logger )
+    << "%D"
+    << "Chunk server connected!, check it is need sync chunk!"
+    << "%n%0";
+
     for ( size_t i = 0; i < master_server::file_name_list->size(); i++ )
     {
         std::vector< std::string > res1;
         std::vector< std::string > res2;
         file::ptr cur_file( new file( master_server::file_name_list->get( i ),
-                                      master_server::file_path_set->get( i ),
+                                      master_server::file_path_list->get( i ),
                                       default_max_chunk_size ) );
         cur_file->open( master_server::m_db );
         meta_data_tab[cur_file->get_name()]->open( master_server::m_db );
@@ -211,7 +225,7 @@ void master_server::sync_chunk( chunk_server_info cur_server )
                     cur_ps.customize.push_back( S( j ) );
                     tcpserver::send( sock, cur_ps );
                     protocol::ptr cur_protocol = tcpserver::recv( sock, master_server::buffer_size );
-                    cur_ps = cur_protocol->get_protocol_struct();
+                    cur_ps                     = cur_protocol->get_protocol_struct();
                     if ( cur_ps.bit == 115 )
                     {
                         /* 获得数据，转发给待同步的chunk server */
@@ -230,7 +244,7 @@ void master_server::sync_chunk( chunk_server_info cur_server )
                         }
                         tcpserver::send( sock, cur_ps );
                         protocol::ptr cur_protocol = tcpserver::recv( sock, master_server::buffer_size );
-                        cur_ps = cur_protocol->get_protocol_struct();
+                        cur_ps                     = cur_protocol->get_protocol_struct();
                         if ( cur_ps.bit != 116 )
                         {
                             ERROR_STD_STREAM_LOG( g_logger )
@@ -255,6 +269,9 @@ void master_server::sync_chunk( chunk_server_info cur_server )
         meta_data_tab[cur_file->get_name()]->close();
         cur_file->close();
     }
+    INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                    << "Chunk server connected!, sync chunk End!"
+                                    << "%n%0";
 }
 
 void master_server::respond()
@@ -294,10 +311,7 @@ void master_server::respond()
         /* 执行相应的消息处理函数 */
         self->message_funcs[cur.bit]( { self, &cur, current_procotol.get(), remote_sock.get() } );
 
-        if ( remote_sock->isConnected() )
-        {
-            remote_sock->close();
-        }
+        //sock_ss.pop();
     }
     catch ( std::exception& e )
     {
@@ -420,7 +434,7 @@ void master_server::check_chunk_server()
             protocol::Protocol_Struct cur( -1, "", "", "", 0, "", {} );
 
             star::IPv4Address::ptr addr = star::IPv4Address::Create( item.addr.c_str(), item.port );
-            MSocket::ptr sock = star::MSocket::CreateTCP( addr );
+            MSocket::ptr sock           = star::MSocket::CreateTCP( addr );
             ;
             // sock->bind( addr );
             bool flag = sock->connect( addr );
@@ -437,7 +451,7 @@ void master_server::check_chunk_server()
                 tcpserver::send( sock, cur );
                 available_chunk_server.push_back( chunk_server_list[i] );
 
-                /* 连接成功后，根据文件时间戳来同步chunk */
+                /* 连接成功后，同步chunk */
                 sync_chunk( chunk_server_list[i] );
             }
 
@@ -529,9 +543,7 @@ void master_server::deal_with_101( std::vector< void* > args )
 */
 void master_server::deal_with_104( std::vector< void* > args )
 {
-    protocol::ptr current_procotol;
-    master_server* self = ( master_server* )args[0];
-    current_procotol.reset( ( protocol* )args[2] );
+    master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
@@ -545,15 +557,17 @@ void master_server::deal_with_104( std::vector< void* > args )
     size_t j            = 0;
     size_t k            = 0;
     std::string temp_str;
-    int32_t gap = int( meta_data_tab[cur.file_name]->chunks_num() / chunk_server_list.size() );
+    int32_t gap = ceil( package_num / chunk_server_list.size() );
 
     /* 接受数据包 */
     for ( size_t i = 0; i < package_num; i++ )
     {
+        DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+                                         << "Begin Store FIle Package " << S( i ) << "%n%0";
         if ( i )
         {
             /* 继续接受后面的包 */
-            current_procotol = tcpserver::recv( remote_sock, self->buffer_size );
+            protocol::ptr current_procotol = tcpserver::recv( remote_sock, self->buffer_size );
 
             /* 看是否接受成功 */
             if ( !current_procotol )
@@ -564,54 +578,56 @@ void master_server::deal_with_104( std::vector< void* > args )
 
                 return;
             }
+            cur = current_procotol->get_protocol_struct();
         }
 
         if ( j < chunk_server_list.size() )
         {
-            cur = current_procotol->get_protocol_struct();
             /* 接收到的文件数据 */
             std::string file_name = cur.file_name;
             std::string file_path = cur.path;
             std::string data      = cur.data;
-            size_t index          = std::stoi( cur.customize[0] );
-
-            /* chunk server的空间不够 */
-            if ( chunk_server_list[j].space < data.size() )
-            {
-                continue;
-            }
+            size_t index          = i;
 
             /* 拷贝副本 */
             for ( size_t ind = 0; ind < self->copys; ind++ )
             {
                 /* 打开一个文件 */
-                file::ptr cur_recv_file( new file( file_name, file_path, self->max_chunk_size ) );
+                file::ptr cur_recv_file = nullptr;
 
                 if ( ind )
                 {
                     /* 副本发往不同的 chunk 服务器 */
-                    cur.file_name = "copy-" + S( ind ) + "-" + file_name;
+                    file_name = "copy-" + S( ind ) + "-" + file_name;
                     j++;
                     if ( j > chunk_server_list.size() )
                     {
                         j = 0;
                     }
-                    cur_recv_file.reset( new file( file_name, file_path, self->max_chunk_size ) );
                 }
+
+                cur_recv_file.reset( new file( file_name, file_path, self->max_chunk_size ) );
                 cur_recv_file->open( self->m_db );
                 /* 追加一个块 */
-                cur_recv_file->record_chunk_meta_data( cur_recv_file->chunks_num(), /* 记录下元数据 */
-                                                       chunk_server_list[j].addr,
-                                                       chunk_server_list[j].port );
+                while ( !cur_recv_file->append_meta_data( /* 记录下元数据 */
+                                                          chunk_server_list[j].addr,
+                                                          chunk_server_list[j].port ) )
+                {
+                    FATAL_STD_STREAM_LOG( g_logger ) << "Record chunk meta data Error!"
+                                                     << "Retry!"
+                                                     << "%n%0";
+                }
                 cur_recv_file->close();
-
                 meta_data_tab[file_name] = cur_recv_file; /* 加入表中 */
-                std::string all_file_name, all_file_path;
-                self->file_name_list->push_back( file_name ); /* 加入新的文件名 */
-                self->file_path_set->push_back( file_path );  /* 加入新的路径名 */
 
                 cur.reset( 108, "", file_name, file_path, 0, data, {} );
                 cur.customize.push_back( S( index ) );
+
+                if ( !i )
+                {
+                    self->file_name_list->push_back( file_name ); /* 加入新的文件名 */
+                    self->file_path_list->push_back( file_path ); /* 加入新的路径名 */
+                }
 
                 IPAddress::ptr addr
                 = star::IPv4Address::Create( available_chunk_server[j].addr.c_str(),
@@ -625,9 +641,13 @@ void master_server::deal_with_104( std::vector< void* > args )
 
                 tcpserver::send( sock, cur );
 
-                current_procotol = tcpserver::recv( sock, self->buffer_size );
+                protocol::ptr current_procotol = tcpserver::recv( sock, self->buffer_size );
+                cur              = current_procotol->get_protocol_struct();
 
-                if ( cur.data != "true" && cur.bit == 116 )
+                DEBUG_STD_STREAM_LOG( g_logger ) << "data" << cur.data << " "
+                                                 << "bit: " << S( cur.bit ) << "%n%0";
+
+                if ( !current_procotol || cur.data != "true" || cur.bit != 116 )
                 {
                     ERROR_STD_STREAM_LOG( g_logger ) << "%D"
                                                      << "Chunk Store error"
@@ -639,7 +659,7 @@ void master_server::deal_with_104( std::vector< void* > args )
 
                 DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                                  << "Chunk Store successfully"
-                                                 << "%n%0";
+                                                 << "Package: " << S( i ) << "%n%0";
 
                 temp_str = "Chunk Store successfully";
 
@@ -652,8 +672,6 @@ void master_server::deal_with_104( std::vector< void* > args )
                     k = 0;
                 }
                 j++;
-
-                sock->close();
             }
         }
         else
@@ -662,7 +680,7 @@ void master_server::deal_with_104( std::vector< void* > args )
         }
     }
 
-    cur.reset( 131, self->m_sock->getLocalAddress()->toString(), "", "", 0, temp_str, {} );
+    cur.reset( 131, "", "", "", 0, temp_str, {} );
     tcpserver::send( remote_sock, cur );
 }
 
@@ -813,7 +831,7 @@ void master_server::deal_with_126( std::vector< void* > args )
     for ( size_t i = 0; i < self->file_name_list->size(); i++ )
     {
         cur.customize.push_back( self->file_name_list->get( i ) );
-        cur.customize.push_back( self->file_path_set->get( i ) );
+        cur.customize.push_back( self->file_path_list->get( i ) );
     }
 
     /* 给客户端返回消息 */

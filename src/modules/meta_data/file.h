@@ -108,6 +108,16 @@ public:
     /* 获取chunk链 */
     std::vector< chunk::ptr > get_chunk_list() { return this->chunks; }
 
+    /* 追加一个空块 */
+    void append_chunk()
+    {
+        this->chunks.push_back(
+        chunk::ptr( new chunk( this->m_name, this->m_path, this->chunks.size() ) ) );
+    }
+
+    /* 追加一个块的元数据 */
+    bool append_meta_data( std::string addr, int16_t port );
+
 private:
     int64_t current_operation_time;   /* 最近一次操作的时间戳 */
     levelDB::ptr m_db;                /* 指向数据库的指针 */

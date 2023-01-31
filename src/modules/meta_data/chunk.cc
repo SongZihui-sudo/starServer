@@ -1,4 +1,5 @@
 #include "chunk.h"
+#include "core/master_server/master_server.h"
 #include "modules/consistency/io_lock/io_lock.h"
 #include "modules/log/log.h"
 #include "modules/meta_data/meta_data.h"
@@ -16,24 +17,18 @@ chunk::chunk( std::string name, std::string path, size_t index )
 
 bool chunk::open( levelDB::ptr db_ptr )
 {
-    if ( db_ptr )
+    if ( !db_ptr )
     {
-        this->m_db = db_ptr;
-        return true;
+        return false;
     }
+
+    this->m_db = db_ptr;
 
     std::string temp = "";
 
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ) } );
-    this->m_db->Get( key, temp );
+    this->open_flag = true;
 
-    if ( !temp.empty() )
-    {
-        return true;
-        this->open_flag = true;
-    }
-
-    return false;
+    return true;
 }
 
 bool chunk::write( file_operation flag, std::string buffer )
@@ -85,6 +80,9 @@ bool chunk::record_meta_data()
 {
     if ( !open_flag )
     {
+        ERROR_STD_STREAM_LOG( g_logger ) << "Error, what: "
+                                         << "not open chunk!"
+                                         << "%n%0";
         return false;
     }
 
@@ -166,7 +164,7 @@ bool chunk::del_meta_data()
     }
     this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
     std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "addr" } );
-    bool flag = this->m_db->Delete( key );
+    bool flag       = this->m_db->Delete( key );
     if ( !flag )
     {
         return false;
@@ -184,7 +182,7 @@ bool chunk::del_meta_data()
     {
         return false;
     }
-    
+
     return true;
 }
 

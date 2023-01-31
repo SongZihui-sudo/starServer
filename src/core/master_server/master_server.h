@@ -33,7 +33,6 @@ public:
      */
     struct chunk_server_info
     {
-        size_t space;                   /* 存储空间 */
         std::string addr;               /* ip 地址 */
         std::int64_t port;              /* 端口 */
         int64_t current_operation_time; /* 最近一次操作的时间 */
@@ -118,7 +117,7 @@ private:
     bool is_login = false;
     size_t copys;                           /* 副本个数 */
     static levelDBList::ptr file_name_list; /* 文件名列表 */
-    static levelDBList::ptr file_path_set;  /* 文件路径列表 */
+    static levelDBList::ptr file_path_list;  /* 文件路径列表 */
 };
 }
 

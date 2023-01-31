@@ -17,7 +17,7 @@ std::stack< void* > arg_ss;
 std::stack< MSocket::ptr > sock_ss;
 static Logger::ptr g_logger( STAR_NAME( "global_logger" ) );
 
-levelDB::ptr tcpserver::m_db = nullptr;
+levelDB::ptr tcpserver::m_db  = nullptr;
 size_t tcpserver::buffer_size = 0;
 
 tcpserver::tcpserver( std::filesystem::path settings_path )
@@ -108,7 +108,12 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
     char* buffer = new char[buffer_size];
     remote_sock->recv( buffer, buffer_size );
 
-    Json::String ready = buffer;
+    std::string ready = buffer;
+
+    if ( ready.empty() )
+    {
+        return nullptr;
+    }
 
     /* 把缓冲区中读到的字符转换成为json格式 */
     if ( !protocoler->toJson( ready ) )
@@ -142,7 +147,6 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
 
     /* 获得序列化后的字符串 */
     std::string buffer = protocoler->toStr();
-
 
     int flag = remote_sock->send( buffer.c_str(), buffer.size() );
 

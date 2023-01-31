@@ -1,15 +1,12 @@
 #include "./chunk_server.h"
 #include "core/tcpServer/tcpserver.h"
-#include "modules/Scheduler/scheduler.h"
 #include "modules/log/log.h"
-#include "modules/meta_data/chunk.h"
-#include "modules/meta_data/file.h"
-#include "modules/meta_data/meta_data.h"
-#include "modules/socket/address.h"
 #include "modules/socket/socket.h"
+
 #include <bits/types/FILE.h>
 #include <cstddef>
 #include <cstdint>
+#include <star.h>
 #include <string>
 #include <unistd.h>
 
@@ -41,9 +38,8 @@ void chunk_server::respond()
 
         if ( !remote_sock )
         {
-            FATAL_STD_STREAM_LOG( g_logger )
-            << "The connection has not been established."
-            << "%n%0";
+            FATAL_STD_STREAM_LOG( g_logger ) << "The connection has not been established."
+                                             << "%n%0";
             return;
         }
 
@@ -59,8 +55,8 @@ void chunk_server::respond()
         if ( !current_procotol )
         {
             FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                                   << "Receive Message Error"
-                                                   << "%n%0";
+                                             << "Receive Message Error"
+                                             << "%n%0";
         }
 
         protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
@@ -70,7 +66,7 @@ void chunk_server::respond()
         {
             return;
         }
-        self->message_funcs[cur.bit]( { self, &cur, &current_procotol } );
+        self->message_funcs[cur.bit]( { self, &cur, current_procotol.get(), remote_sock.get() } );
     }
     catch ( std::exception& e )
     {
@@ -83,9 +79,10 @@ void chunk_server::respond()
 */
 void chunk_server::deal_with_108( std::vector< void* > args )
 {
-    server_io_lock->lock_write( file_operation::write ); /* 上写锁 */
     chunk_server* self            = ( chunk_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset((MSocket*)args[3]);
     std::string flag              = "true";
 
     if ( cur.customize.empty() )
@@ -94,18 +91,23 @@ void chunk_server::deal_with_108( std::vector< void* > args )
     }
 
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    cur_file->open( self->m_db ); /* 打开文件 */
-    bool bit = cur_file->write( file_operation::write, cur.data, std::stoi( cur.customize[0] ) ); /* 写文件 */
-    cur_file->close(); /* 关闭文件 */
+    cur_file->open( self->m_db );                                   /* 打开文件 */
+    bool bit = cur_file->append( file_operation::write, cur.data ); /* 写文件 */
+    cur_file->close();                                              /* 关闭文件 */
 
     if ( !bit )
     {
+        FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                         << "Append file data fail!"
+                                         << "%n%0";
         flag = "false";
     }
+    INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                    << "Append file data successfully!"
+                                    << "%n%0";
 
     cur.reset( 116, self->m_sock->getLocalAddress()->toString(), "", "", 0, flag, {} );
     tcpserver::send( remote_sock, cur );
-    server_io_lock->release_write(); /* 解写锁 */
 }
 
 /*
@@ -145,10 +147,10 @@ void chunk_server::deal_with_113( std::vector< void* > args )
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
     cur_file->open( self->m_db ); /* 打开文件 */
     size_t index = std::stoi( cur.customize[0] );
-    bool bit = cur_file->del( file_operation::write, index );
-    cur_file->close();  /* 关闭文件 */
+    bool bit     = cur_file->del( file_operation::write, index );
+    cur_file->close(); /* 关闭文件 */
 
-    if (!bit) 
+    if ( !bit )
     {
         flag = "false";
     }
