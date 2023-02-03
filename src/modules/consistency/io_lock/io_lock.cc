@@ -16,12 +16,21 @@ void io_lock::lock_read( file_operation flag )
 {
     if ( flag != read )
     {
-        DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                         << "chunk has been locked read!"
-                                         << "%n%0";
+        int i = 0;
         /* 阻塞当前的线程 */
-        while ( this->m_signal == read_unlock )
+        while ( true )
         {
+            if ( this->m_signal == read_unlock || this->m_signal == none_lock )
+            {    
+                break;
+            }
+            if ( !i )
+            {
+                DEBUG_STD_STREAM_LOG( g_logger )
+                << "%D"
+                << "chunk has been locked read!" << Logger::endl();
+            }
+            i++;
         }
     }
     /* 上读锁 */
@@ -31,12 +40,20 @@ void io_lock::lock_read( file_operation flag )
 
 void io_lock::lock_write( file_operation flag )
 {
-    DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                     << "chunk has been locked write!"
-                                     << "%n%0";
+    int i = 0;
     /* 上锁后读和写都不能在进行，等待 */
-    while ( this->m_signal == write_unlock )
+    while ( true )
     {
+        if ( this->m_signal == write_unlock || this->m_signal == none_lock )
+        {
+            break;
+        }
+        if ( !i )
+        {
+            DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+                                             << "chunk has been locked write!" << Logger::endl();
+        }
+        i++;
     }
     /* 在上锁 */
     this->m_signal = write_lock;

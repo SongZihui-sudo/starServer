@@ -113,7 +113,7 @@ bool Address::Lookup( std::vector< Address::ptr >& result, const std::string& ho
         DEBUG_STD_STREAM_LOG( g_logger )
         << "Address::Lookup getaddress(" << host << ", " << std::to_string( family ) << ", "
         << std::to_string( type ) << ") err=" << std::to_string( error )
-        << " errstr=" << gai_strerror( error ) << "%n%0";
+        << " errstr=" << gai_strerror( error ) << Logger::endl();
         return false;
     }
 
@@ -138,7 +138,7 @@ bool Address::GetInterfaceAddresses( std::multimap< std::string, std::pair< Addr
         DEBUG_STD_STREAM_LOG( g_logger )
         << "Address::GetInterfaceAddresses getifaddrs "
            " err="
-        << std::to_string( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << std::to_string( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
 
@@ -296,7 +296,7 @@ IPAddress::ptr IPAddress::Create( const char* address, uint16_t port )
         DEBUG_STD_STREAM_LOG( g_logger )
         << "IPAddress::Create(" << address << ", " << std::to_string( port )
         << ") error=" << std::to_string( error ) << " errno=" << std::to_string( errno )
-        << " errstr=" << strerror( errno ) << "%n%0";
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return nullptr;
     }
 
@@ -329,7 +329,7 @@ IPv4Address::ptr IPv4Address::Create( const char* address, uint16_t port )
         DEBUG_STD_STREAM_LOG( g_logger )
         << "IPv4Address::Create(" << address << ", " << std::to_string( port )
         << ") rt=" << std::to_string( result ) << " errno=" << std::to_string( errno )
-        << " errstr=" << strerror( errno ) << "%n%0";
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return nullptr;
     }
     return rt;
@@ -407,7 +407,7 @@ IPv6Address::ptr IPv6Address::Create( const char* address, uint16_t port )
         DEBUG_STD_STREAM_LOG( g_logger )
         << "IPv6Address::Create(" << address << ", " << std::to_string( port )
         << ") rt=" << std::to_string( result ) << " errno=" << std::to_string( errno )
-        << " errstr=" << strerror( errno ) << "%n%0";
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return nullptr;
     }
     return rt;

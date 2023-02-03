@@ -37,19 +37,19 @@ Threading::Threading( std::function< void() > func, const std::string& name )
 
     INFO_STD_STREAM_LOG( this->t_logger )
     << std::to_string( getTime() ) << " <----> "
-    << "New Thread Created. Current nums of thread: " << std::to_string( thread_nums ) << "%n%0";
+    << "New Thread Created. Current nums of thread: " << std::to_string( thread_nums ) << Logger::endl();
 
     int rt = pthread_create( &m_thread, nullptr, &Threading::run, this );
 
     INFO_STD_STREAM_LOG( this->t_logger ) << std::to_string( getTime() ) << " <----> "
                                           << "New Thread Created!"
-                                          << "flag: " << std::to_string( rt ) << "%n%0";
+                                          << "flag: " << std::to_string( rt ) << Logger::endl();
 
     if ( rt )
     {
         m_status = ERROR;
         ERROR_STD_STREAM_LOG( this->t_logger )
-        << "pthread_create thread fail, rt=" << S( rt ) << " name=" << name << "%n%0";
+        << "pthread_create thread fail, rt=" << S( rt ) << " name=" << name << Logger::endl();
         throw std::logic_error( "pthread_create error" );
     }
 
@@ -68,7 +68,7 @@ void Threading::join()
         {
             m_status = ERROR;
             ERROR_STD_STREAM_LOG( this->t_logger )
-            << "pthread_join thread fail, rt=" << S( rt ) << " name=" << m_name << "%n%0";
+            << "pthread_join thread fail, rt=" << S( rt ) << " name=" << m_name << Logger::endl();
             throw std::logic_error( "pthread_join error" );
         }
 
@@ -76,7 +76,7 @@ void Threading::join()
         return;
     }
     ERROR_STD_STREAM_LOG( this->t_logger ) << "Error! What: The thread has not created.!"
-                                           << "%n%0";
+                                           << Logger::endl();
 }
 
 void Threading::exit()
@@ -93,7 +93,7 @@ void* Threading::run( void* arg )
     INFO_STD_STREAM_LOG( thread->t_logger )
     << std::to_string( getTime() ) << " <----> "
     << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Runing"
-    << "%n%0";
+    << Logger::endl();
 
     thread->m_status = RUNING;
     thread->m_id     = GetThreadId();
@@ -109,7 +109,7 @@ void* Threading::run( void* arg )
         INFO_STD_STREAM_LOG( thread->t_logger )
         << std::to_string( getTime() ) << " <----> "
         << "Thread " << std::to_string( thread->m_id ) << " " << thread->get_name() << " Exit!"
-        << "%n%0";
+        << Logger::endl();
     }
     catch ( std::exception& e )
     {
@@ -132,7 +132,7 @@ void Threading::reset( std::function< void() > func, std::string thread_name )
     {
         m_status = ERROR;
         ERROR_STD_STREAM_LOG( this->t_logger )
-        << "pthread_create thread fail, rt=" << S( rt ) << " name=" << this->m_name << "%n%0";
+        << "pthread_create thread fail, rt=" << S( rt ) << " name=" << this->m_name << Logger::endl();
         throw std::logic_error( "pthread_create error" );
     }
 

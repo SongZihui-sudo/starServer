@@ -18,35 +18,35 @@ void test1()
 
     if ( addr )
     {
-        INFO_STD_STREAM_LOG( g_logger ) << "get address: " << addr->toString() << "%n%0";
+        INFO_STD_STREAM_LOG( g_logger ) << "get address: " << addr->toString() << Logger::endl();
     }
     else
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "get address fail"
-                                         << "%n%0";
+                                         << Logger::endl();
         return;
     }
 
     star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
     addr->setPort( 80 );
-    INFO_STD_STREAM_LOG( g_logger ) << "addr=" << addr->toString() << "%n%0";
+    INFO_STD_STREAM_LOG( g_logger ) << "addr=" << addr->toString() << Logger::endl();
     if ( !sock->connect( addr ) )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "connect " << addr->toString() << " fail"
-                                         << "%n%0";
+                                         << Logger::endl();
         return;
     }
     else
     {
         INFO_STD_STREAM_LOG( g_logger ) << "connect " << addr->toString() << " connected"
-                                        << "%n%0";
+                                        << Logger::endl();
     }
 
     const char buff[] = "GET / HTTP/1.0\r\n\r\n";
     int rt            = sock->send( buff, sizeof( buff ) );
     if ( rt <= 0 )
     {
-        INFO_STD_STREAM_LOG( g_logger ) << "send fail rt=" << S( rt ) << "%n%0";
+        INFO_STD_STREAM_LOG( g_logger ) << "send fail rt=" << S( rt ) << Logger::endl();
         return;
     }
 
@@ -56,12 +56,12 @@ void test1()
 
     if ( rt <= 0 )
     {
-        INFO_STD_STREAM_LOG( g_logger ) << "recv fail rt=" << S( rt ) << "%n%0";
+        INFO_STD_STREAM_LOG( g_logger ) << "recv fail rt=" << S( rt ) << Logger::endl();
         return;
     }
 
     buffs.resize( rt );
-    INFO_STD_STREAM_LOG( g_logger ) << buffs << "%n%0";
+    INFO_STD_STREAM_LOG( g_logger ) << buffs << Logger::endl();
 }
 
 void test2()
@@ -69,12 +69,12 @@ void test2()
     star::IPAddress::ptr addr = star::Address::LookupAnyIPAddress( "www.baidu.com:80" );
     if ( addr )
     {
-        INFO_STD_STREAM_LOG( g_logger ) << "get address: " << addr->toString() << "%n%0";
+        INFO_STD_STREAM_LOG( g_logger ) << "get address: " << addr->toString() << Logger::endl();
     }
     else
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "get address fail"
-                                         << "%n%0";
+                                         << Logger::endl();
         ;
         return;
     }
@@ -83,13 +83,13 @@ void test2()
     if ( !sock->connect( addr ) )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "connect " << addr->toString() << " fail"
-                                         << "%n%0";
+                                         << Logger::endl();
         return;
     }
     else
     {
         INFO_STD_STREAM_LOG( g_logger ) << "connect " << addr->toString() << " connected"
-                                        << "%n%0";
+                                        << Logger::endl();
     }
 
     uint64_t ts = getTime();
@@ -98,7 +98,7 @@ void test2()
         if ( int err = sock->getError() )
         {
             INFO_STD_STREAM_LOG( g_logger )
-            << "err=" << S( err ) << " errstr=" << strerror( err ) << "%n%0";
+            << "err=" << S( err ) << " errstr=" << strerror( err ) << Logger::endl();
             break;
         }
 
@@ -108,7 +108,7 @@ void test2()
             uint64_t ts2 = getTime();
             INFO_STD_STREAM_LOG( g_logger )
             << "i=" << S( i ) << " used: " << S( ( ts2 - ts ) * 1.0 / batch ) << " us"
-            << "%n%0";
+            << Logger::endl();
             ts = ts2;
         }
     }
@@ -132,7 +132,7 @@ void test3()
         return;
     };
     DEBUG_STD_STREAM_LOG( g_logger )
-    << "server Start listening !" << m_socket->getLocalAddress()->toString() << "%n%0";
+    << "server Start listening !" << m_socket->getLocalAddress()->toString() << Logger::endl();
     star::MSocket::ptr client_addr = nullptr;
 
     client_addr = m_socket->accept();
@@ -149,7 +149,7 @@ void test3()
         INFO_STD_STREAM_LOG( g_logger )
         << "Get Message"
         << "%n"
-        << "Form:" << m_socket->getRemoteAddress()->toString() << "Msg:" << cur << "%n%0";
+        << "Form:" << m_socket->getRemoteAddress()->toString() << "Msg:" << cur << Logger::endl();
 
         star::protocol::Protocol_Struct t;
         star::protocol::ptr test(new star::protocol("test", t));
@@ -160,7 +160,7 @@ void test3()
         if ( cur == "End" )
         {
             WERN_STD_STREAM_LOG( g_logger ) << "STOP LISTENING!"
-                                            << "%n%0";
+                                            << Logger::endl();
             client_addr->send( "End", 2 );
             delete[] buffer;
             break;

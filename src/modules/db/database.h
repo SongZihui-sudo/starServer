@@ -255,6 +255,11 @@ public:
      */
     size_t size() { return this->length; }
 
+    /* 
+        查看是否与表中的元素重合
+     */
+    bool is_same(std::string value);
+
     /* 索引 */
     std::string get( size_t index )
     {

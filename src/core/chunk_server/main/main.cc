@@ -1,4 +1,6 @@
 #include "../chunk_server.h"
+#include "modules/log/log.h"
+#include <iostream>
 /* 服务器对象 */
 star::chunk_server::ptr cs;
 
@@ -17,7 +19,7 @@ int main()
 
     INFO_STD_STREAM_LOG( global_logger ) << std::to_string( getTime() ) << " <----> "
                                          << "Server initialization completed."
-                                         << "%n%0";
+                                         << star::Logger::endl();
 
     run();
 

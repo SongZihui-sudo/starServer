@@ -82,7 +82,7 @@ bool chunk::record_meta_data()
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "Error, what: "
                                          << "not open chunk!"
-                                         << "%n%0";
+                                         << Logger::endl();
         return false;
     }
 
@@ -93,6 +93,7 @@ bool chunk::record_meta_data()
 
     if ( !write_flag )
     {
+        this->m_lock->lock_write( file_operation::write ); /* 上写锁 */
         return false;
     }
 
@@ -120,6 +121,7 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
     bool read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
     {
+        this->m_lock->release_read(); /* 解开读锁 */
         return false;
     }
     res.push_back( temp );
@@ -128,6 +130,7 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
     read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
     {
+        this->m_lock->release_read(); /* 解开读锁 */
         return false;
     }
     res.push_back( temp );
@@ -136,6 +139,7 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
     read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
     {
+        this->m_lock->release_read(); /* 解开读锁 */
         return false;
     }
     res.push_back( temp );
@@ -167,12 +171,14 @@ bool chunk::del_meta_data()
     bool flag       = this->m_db->Delete( key );
     if ( !flag )
     {
+        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
         return false;
     }
     key  = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "port" } );
     flag = this->m_db->Delete( key );
     if ( !flag )
     {
+        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
         return false;
     }
 
@@ -180,6 +186,7 @@ bool chunk::del_meta_data()
     flag = this->m_db->Delete( key );
     if ( !flag )
     {
+        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
         return false;
     }
 

@@ -36,6 +36,14 @@ public:
         std::string addr;               /* ip 地址 */
         std::int64_t port;              /* 端口 */
         int64_t current_operation_time; /* 最近一次操作的时间 */
+
+        /* 生成一个关于 chunk server 地址的键值 */
+        std::string join() { return this->addr + ":" + S( this->port ); }
+
+        static std::string join( std::string addr, std::int64_t port )
+        {
+            return addr + ":" + S( port );
+        }
     };
 
 public:
@@ -108,16 +116,15 @@ protected:
         << " \\___ \\  | __|  / _` | | '__| | |_    / __|\n"
         << "  ___) | | |_  | (_| | | |    |  _|   \\__ \\\n"
         << " |____/   \\__|  \\__,_| |_|    |_|     |___/\n"
-        << "                            ----> Master Server Exploded version"
-        << "%n%0";
+        << "                            ----> Master Server Exploded version" << Logger::endl();
     }
 
 private:
-    size_t max_chunk_size; /* chunk 的最大大小  */
+    static size_t max_chunk_size; /* chunk 的最大大小  */
     bool is_login = false;
-    size_t copys;                           /* 副本个数 */
+    static size_t copys;                    /* 副本个数 */
     static levelDBList::ptr file_name_list; /* 文件名列表 */
-    static levelDBList::ptr file_path_list;  /* 文件路径列表 */
+    static levelDBList::ptr file_path_list; /* 文件路径列表 */
 };
 }
 

@@ -30,7 +30,7 @@ int main()
 
     INFO_STD_STREAM_LOG( global_logger ) << std::to_string( getTime() ) << " <----> "
                                          << "Server initialization completed."
-                                         << "%n%0";
+                                         << star::Logger::endl();
 
     /* 新建一个线程，等待连接 */
     run();

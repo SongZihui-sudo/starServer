@@ -38,15 +38,14 @@ class LogManager;
 #define STAR_UNLIKELY( x ) ( x )
 #endif
 
-#define S(name) \
-    std::to_string(name)
+#define S( name ) std::to_string( name )
 
 /* 断言宏封装 */
 #define STAR_ASSERT( x, loggerName )                                                       \
     if ( STAR_UNLIKELY( !( x ) ) )                                                         \
     {                                                                                      \
         ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n"                     \
-                                           << "%n%0";                                      \
+                                           << Logger::endl();                                      \
         assert( x );                                                                       \
     }
 
@@ -54,7 +53,7 @@ class LogManager;
 #define STAR_ASSERT2( x, w, loggerName )                                                   \
     if ( STAR_UNLIKELY( !( x ) ) )                                                         \
     {                                                                                      \
-        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n" << w << "%n%0";     \
+        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n" << w << Logger::endl();     \
         assert( x );                                                                       \
     }
 
@@ -171,9 +170,9 @@ static std::map< LogLevel::level, std::string > colorTab = {
 #define BOLDMAGENTA "\033[1m\033[35m" /* 加粗品红 */
 #define BOLDCYAN "\033[1m\033[36m"    /* 加粗蓝绿 */
 #define BOLDWHITE "\033[1m\033[37m"   /* 加粗白 */
-    { LogLevel::level::DEBUG, YELLOW }, { LogLevel::level::ERROR, RED },
-    { LogLevel::level::WERN, MAGENTA }, { LogLevel::level::DOTKNOW, CYAN },
-    { LogLevel::level::INFO, BOLDWHITE },   { LogLevel::level::FATAL, BOLDRED }
+    { LogLevel::level::DEBUG, YELLOW },   { LogLevel::level::ERROR, RED },
+    { LogLevel::level::WERN, MAGENTA },   { LogLevel::level::DOTKNOW, CYAN },
+    { LogLevel::level::INFO, BOLDWHITE }, { LogLevel::level::FATAL, BOLDRED }
 };
 
 /*
@@ -255,16 +254,16 @@ public:
     void set_logName( std::string LogName ) { this->m_name = LogName; } /* 设置日志名称 */
 
 private:
-    LogLevel::level m_level;       /* 日志等级 */
-    uint32_t m_line;               /* 行号 */
-    std::string m_file;            /* 文件名 */
-    std::string m_threadName;      /* 线程名称 */
-    uint32_t m_threadId = 0;       /* 线程id */
-    uint32_t m_fiberId  = 0;       /* 协程id */
-    uint64_t m_time     = 0;       /* 日志时间 */
+    LogLevel::level m_level;        /* 日志等级 */
+    uint32_t m_line;                /* 行号 */
+    std::string m_file;             /* 文件名 */
+    std::string m_threadName;       /* 线程名称 */
+    uint32_t m_threadId = 0;        /* 线程id */
+    uint32_t m_fiberId  = 0;        /* 协程id */
+    uint64_t m_time     = 0;        /* 日志时间 */
     std::ostringstream m_formatted; /* 格式化串 */
-    std::string m_message;         /* 内容 */
-    std::string m_name;            /* 日志名称 */
+    std::string m_message;          /* 内容 */
+    std::string m_name;             /* 日志名称 */
 };
 
 /*
@@ -581,6 +580,11 @@ public:
     ~Logger(){};
 
     /*
+        endl
+    */
+    static std::string endl() { return "%n%0"; }
+
+    /*
         设置日志等级
     */
     void set_level( LogLevel::level in_level ) { this->m_level = in_level; }
@@ -646,7 +650,7 @@ public:
                 switch ( *temp )
                 {
                     case 'D':
-                        TimeItem::format(this->m_formatter->get_formatted()->get_formatted(), nullptr);
+                        TimeItem::format( this->m_formatter->get_formatted()->get_formatted(), nullptr );
                         temp++;
                         break;
                     case 'n':

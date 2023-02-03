@@ -5,11 +5,13 @@
 #include "modules/log/log.h"
 #include "modules/protocol/protocol.h"
 
+#include <csignal>
 #include <cstddef>
 #include <exception>
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <sys/socket.h>
 
 namespace star
 {
@@ -65,8 +67,7 @@ void tcpserver::wait( void respond(), void* self )
 
     /* 阻塞线程，进行等待 */
     INFO_STD_STREAM_LOG( g_logger ) << std::to_string( getTime() ) << " <----> "
-                                    << "Server Start Listening!"
-                                    << "%n%0";
+                                    << "Server Start Listening!" << Logger::endl();
 
     while ( true )
     {
@@ -78,7 +79,8 @@ void tcpserver::wait( void respond(), void* self )
 
             INFO_STD_STREAM_LOG( g_logger )
             << std::to_string( getTime() ) << " <----> "
-            << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString() << "%n%0";
+            << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString()
+            << Logger::endl();
 
             std::string thread_name = "respond" + std::to_string( index );
 
@@ -93,47 +95,52 @@ void tcpserver::wait( void respond(), void* self )
 
 void tcpserver::close()
 {
-    WERN_STD_STREAM_LOG( g_logger ) << "Server Exit, Code -1"
-                                    << "%n%0";
+    WERN_STD_STREAM_LOG( g_logger ) << "Server Exit, Code -1" << Logger::endl();
     exit( -1 );
 }
 
 protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 {
-    protocol::Protocol_Struct ret;
-    protocol::ptr protocoler( new protocol( "recv", ret ) );
-    protocoler->Serialize();
-
-    /* 初始化缓冲区 */
-    char* buffer = new char[buffer_size];
-    remote_sock->recv( buffer, buffer_size );
-
-    std::string ready = buffer;
-
-    if ( ready.empty() )
+    try
     {
-        return nullptr;
-    }
+        protocol::Protocol_Struct ret;
+        protocol::ptr protocoler( new protocol( "recv", ret ) );
+        protocoler->Serialize();
 
-    /* 把缓冲区中读到的字符转换成为json格式 */
-    if ( !protocoler->toJson( ready ) )
+        /* 初始化缓冲区 */
+        char* buffer = new char[buffer_size];
+        remote_sock->recv( buffer, buffer_size, MSG_NOSIGNAL );
+        std::string ready = buffer;
+        if ( ready.empty() || ready[0] != '{' )
+        {
+            return nullptr;
+        }
+
+        /* 把缓冲区中读到的字符转换成为json格式 */
+        if ( !protocoler->toJson( ready ) )
+        {
+            FATAL_STD_STREAM_LOG( g_logger ) << "Serialization failed."
+                                             << "string: " << ready << "length: " << S(ready.size()) << Logger::endl();
+            return nullptr;
+        }
+
+        /* 把 json 反序列化成为结构体 */
+        protocoler->Deserialize();
+
+        INFO_STD_STREAM_LOG( g_logger ) << "****************** Get Message " << S( getTime() )
+                                        << " ******************" << Logger::endl();
+        protocoler->display();
+        INFO_STD_STREAM_LOG( g_logger )
+        << "*************************************************" << Logger::endl();
+
+        delete[] buffer;
+
+        return protocoler;
+    }
+    catch ( std::exception& e )
     {
-        return nullptr;
+        throw e;
     }
-
-    /* 把 json 反序列化成为结构体 */
-    protocoler->Deserialize();
-
-    INFO_STD_STREAM_LOG( g_logger )
-    << "****************** Get Message " << S( getTime() ) << " ******************"
-    << "%n%0";
-    protocoler->display();
-    INFO_STD_STREAM_LOG( g_logger ) << "*************************************************"
-                                    << "%n%0";
-
-    delete[] buffer;
-
-    return protocoler;
 }
 
 int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
@@ -148,14 +155,13 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
     /* 获得序列化后的字符串 */
     std::string buffer = protocoler->toStr();
 
-    int flag = remote_sock->send( buffer.c_str(), buffer.size() );
+    int flag = remote_sock->send( buffer.c_str(), buffer.size(), MSG_NOSIGNAL );
 
-    INFO_STD_STREAM_LOG( g_logger )
-    << "****************** Send Message " << S( getTime() ) << " ******************"
-    << "%n%0";
+    INFO_STD_STREAM_LOG( g_logger ) << "****************** Send Message " << S( getTime() )
+                                    << " ******************" << Logger::endl();
     protocoler->display();
-    INFO_STD_STREAM_LOG( g_logger ) << "*************************************************"
-                                    << "%n%0";
+    INFO_STD_STREAM_LOG( g_logger )
+    << "*************************************************" << Logger::endl();
 
     return flag;
 }
@@ -182,8 +188,7 @@ void tcpserver::bind()
     }
     else
     {
-        ERROR_STD_STREAM_LOG( g_logger ) << "Unknown address type！"
-                                         << "%n%0";
+        ERROR_STD_STREAM_LOG( g_logger ) << "Unknown address type！" << Logger::endl();
         return;
     }
 

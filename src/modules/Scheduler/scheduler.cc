@@ -48,7 +48,7 @@ void Scheduler::assign_task( task& t_task )
         FATAL_STD_STREAM_LOG( this->m_logger )
         << "The number of threads has reached the maximum, and new tasks cannot be "
            "assigned."
-        << "%n%0";
+        << Logger::endl();
     }
 }
 

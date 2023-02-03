@@ -29,7 +29,7 @@ void service_manager::start()
         Threading::ptr service_thread( new Threading( this->service_pool[item.first].func, item.first ) );
         INFO_STD_STREAM_LOG( g_logger ) << "%D"
                                         << "Service: " << item.first << " Start!"
-                                        << "thread: " << S( service_thread->get_id() ) << "%n%0";
+                                        << "thread: " << S( service_thread->get_id() ) << Logger::endl();
         item.second.thread = service_thread; /* 设置id */
         sleep(1);   /* 暂停一下，*****不能删***** */
     }
@@ -41,7 +41,7 @@ void service_manager::stop( std::string name )
     {
         FATAL_STD_STREAM_LOG( g_logger ) << "%D"
                                          << "No service_manager has been register!"
-                                         << "%n%0";
+                                         << Logger::endl();
         return;
     }
     pthread_t id = this->service_pool[name].thread->get_id();
@@ -50,7 +50,7 @@ void service_manager::stop( std::string name )
     this->current_services_num--;
     WERN_STD_STREAM_LOG( g_logger ) << "%D"
                                     << "Service: " << name << " End!"
-                                    << "%n%0";
+                                    << Logger::endl();
 }
 
 void service_manager::register_service( std::string name, std::function< void() > func )
@@ -58,7 +58,7 @@ void service_manager::register_service( std::string name, std::function< void() 
     if ( this->current_services_num > this->max_services_num - 1 )
     {
         FATAL_STD_STREAM_LOG( g_logger ) << "The maximum number of tasks has been reached."
-                                         << "%n%0";
+                                         << Logger::endl();
         return;
     }
 
@@ -67,7 +67,7 @@ void service_manager::register_service( std::string name, std::function< void() 
 
     INFO_STD_STREAM_LOG( g_logger ) << "%D"
                                     << "Service: " << name << " Register!"
-                                    << "%n%0";
+                                    << Logger::endl();
     this->current_services_num++;
 }
 

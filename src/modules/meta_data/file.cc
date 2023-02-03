@@ -30,6 +30,13 @@ bool file::open( levelDB::ptr db_ptr )
     this->m_db      = db_ptr;
     this->open_flag = true;
 
+    this->set_chunks_num();
+    for ( size_t i = 0; i < this->m_chunks_num; i++ )
+    {
+        chunk::ptr cur_chunk( new chunk( this->m_name, this->m_path, i ) );
+        this->chunks.push_back( cur_chunk );
+    }
+
     this->current_operation_time = getTime();
 
     return true;
@@ -87,36 +94,23 @@ bool file::append( file_operation flag, std::string buffer )
     if ( !open_flag )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "Error, what: "
-                                         << "not open file!"
-                                         << "%n%0";
+                                         << "not open file!" << Logger::endl();
         return false;
     }
 
     bool ret_flag;
-    if ( !this->chunks.empty() && this->chunks.back()->size() < this->default_chunk_size )
-    {
-        DEBUG_STD_STREAM_LOG( g_logger ) << "file.cc 102"
-                                         << "append"
-                                         << "%n%0";
-        this->chunks.back()->open( m_db );
-        std::string temp = "";
-        this->chunks.back()->read( file_operation::read, temp );
-        buffer += temp;
-        ret_flag = this->chunks.back()->write( file_operation::write, buffer );
-        this->chunks.back()->close();
-    }
-    else
-    {
-        DEBUG_STD_STREAM_LOG( g_logger ) << "file.cc 114"
-                                         << "append"
-                                         << "%n%0";
-        chunk::ptr new_chunk( new chunk( this->m_name, this->m_path, this->chunks.size() ) );
-        new_chunk->open( m_db );
-        ret_flag = new_chunk->write( file_operation::write, buffer );
-        this->chunks.push_back( new_chunk );
-        new_chunk->close();
-    }
+
+    DEBUG_STD_STREAM_LOG( g_logger ) << "file.cc 114"
+                                     << "append" << Logger::endl();
+    chunk::ptr new_chunk( new chunk( this->m_name, this->m_path, this->chunks.size() ) );
+    new_chunk->open( m_db );
+    ret_flag = new_chunk->write( file_operation::write, buffer );
+    this->chunks.push_back( new_chunk );
+    new_chunk->close();
+
     this->current_operation_time = getTime();
+    this->m_chunks_num++;
+    this->m_db->Put( this->join(), S( this->m_chunks_num ) );
 
     return ret_flag;
 }
@@ -143,6 +137,8 @@ bool file::del( file_operation flag, size_t index )
     this->chunks[index]->del( file_operation::write );
     this->chunks[index]->close();
     this->current_operation_time = getTime();
+    this->m_chunks_num--;
+    this->m_db->Put( this->join(), S( this->m_chunks_num ) );
 
     return true;
 }
@@ -257,8 +253,7 @@ bool file::append_meta_data( std::string addr, int16_t port )
     if ( !open_flag )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "Error, what: "
-                                         << "not open file!"
-                                         << "%n%0";
+                                         << "not open file!" << Logger::endl();
         return false;
     }
     chunk::ptr new_chunk( new chunk( this->m_name, this->m_path, this->chunks.size() ) );
@@ -269,7 +264,24 @@ bool file::append_meta_data( std::string addr, int16_t port )
     new_chunk->close();
     this->chunks.push_back( new_chunk );
     this->current_operation_time = getTime();
+    this->m_chunks_num++;
+    this->m_db->Put( this->join(), S( this->m_chunks_num ) );
     return write_flag;
+}
+
+void file::set_chunks_num()
+{
+    std::string value;
+    if ( !this->m_db->Get( this->join(), value ) )
+    {
+        this->m_chunks_num = 0;
+    }
+    else
+    {
+        this->m_chunks_num = std::stoi( value );
+    }
+    DEBUG_STD_STREAM_LOG( g_logger )
+    << "Get a chunks, size: " << S( this->m_chunks_num ) << Logger::endl();
 }
 
 }

@@ -16,7 +16,7 @@ void test_case1()
     lock->lock_read( star::read );
 
     DEBUG_STD_STREAM_LOG( g_logger ) << "Locked!"
-                                     << "index: " << S( index ) << "%n%0";
+                                     << "index: " << S( index ) << Logger::endl();
 
     index++;
     lock->release_read();
@@ -29,7 +29,7 @@ void test_case2()
     lock->lock_read( star::write );
 
     DEBUG_STD_STREAM_LOG( g_logger ) << "Locked!"
-                                     << "index: " << S( index ) << "%n%0";
+                                     << "index: " << S( index ) << Logger::endl();
 
     index++;
     lock->release_read();
@@ -42,7 +42,7 @@ void test_case3()
     lock->lock_write( star::read );
 
     DEBUG_STD_STREAM_LOG( g_logger ) << "Locked!"
-                                     << "index: " << S( index ) << "%n%0";
+                                     << "index: " << S( index ) << Logger::endl();
 
     index++;
     lock->release_write();
@@ -55,7 +55,7 @@ void test_case4()
     lock->lock_write( star::write );
 
     DEBUG_STD_STREAM_LOG( g_logger ) << "Locked!"
-                                     << "index: " << S( index ) << "%n%0";
+                                     << "index: " << S( index ) << Logger::endl();
 
     index++;
     lock->release_write();

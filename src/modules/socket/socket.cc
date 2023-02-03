@@ -82,7 +82,7 @@ bool MSocket::getOption( int level, int option, void* result, socklen_t* len )
         DEBUG_STD_STREAM_LOG( g_logger )
         << "getOption sock=" << std::to_string( m_sock )
         << " level=" << std::to_string( level ) << " option=" << std::to_string( option )
-        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;
@@ -95,7 +95,7 @@ bool MSocket::setOption( int level, int option, const void* result, socklen_t le
         DEBUG_STD_STREAM_LOG( g_logger )
         << "getOption sock=" << std::to_string( m_sock )
         << " level=" << std::to_string( level ) << " option=" << std::to_string( option )
-        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;
@@ -109,7 +109,7 @@ MSocket::ptr MSocket::accept()
     {
         ERROR_STD_STREAM_LOG( g_logger )
         << "accept(" << std::to_string( m_sock ) << ") errno=" << std::to_string( errno )
-        << " errstr=" << strerror( errno ) << "%n%0";
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return nullptr;
     }
     if ( sock->init( newsock ) )
@@ -145,7 +145,7 @@ bool MSocket::bind( const Address::ptr addr )
     {
         ERROR_STD_STREAM_LOG( g_logger )
         << "bind sock.family(" << S( m_family ) << ") addr.family("
-        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << "%n%0";
+        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << Logger::endl();
         return false;
     }
 
@@ -162,7 +162,7 @@ bool MSocket::bind( const Address::ptr addr )
     if ( ::bind( m_sock, addr->getAddr(), addr->getAddrLen() ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
-        << "bind error errrno=" << S( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << "bind error errrno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     getLocalAddress();
@@ -174,7 +174,7 @@ bool MSocket::reconnect( uint64_t timeout_ms )
     if ( !m_remoteAddress )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "reconnect m_remoteAddress is null"
-                                         << "%n%0";
+                                         << Logger::endl();
         return false;
     }
     m_localAddress.reset();
@@ -193,24 +193,24 @@ bool MSocket::connect( const Address::ptr addr, uint64_t timeout_ms )
         }
     }
 
-    //DEBUG_STD_STREAM_LOG(g_logger) << m_remoteAddress->toString() << "%n%0";
+    //DEBUG_STD_STREAM_LOG(g_logger) << m_remoteAddress->toString() << Logger::endl();
 
     if ( STAR_UNLIKELY( addr->getFamily() != m_family ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
         << "connect sock.family(" << S( m_family ) << ") addr.family("
-        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << "%n%0";
+        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << Logger::endl();
         return false;
     }
 
     if ( timeout_ms == ( uint64_t )-1 )
     {
-        //DEBUG_STD_STREAM_LOG(g_logger) << addr->toString() << "%n%0";
+        //DEBUG_STD_STREAM_LOG(g_logger) << addr->toString() << Logger::endl();
         if ( ::connect( m_sock, addr->getAddr(), addr->getAddrLen() ) )
         {
             ERROR_STD_STREAM_LOG( g_logger )
             << "sock=" << S( m_sock ) << " connect(" << addr->toString()
-            << ") error errno=" << S( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+            << ") error errno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
             close();
             return false;
         }
@@ -235,13 +235,13 @@ bool MSocket::listen( int backlog )
     if ( !isValid() )
     {
         ERROR_STD_STREAM_LOG( g_logger ) << "listen error sock=-1"
-                                         << "%n%0";
+                                         << Logger::endl();
         return false;
     }
     if ( ::listen( m_sock, backlog ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
-        << "listen error errno=" << S( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << "listen error errno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;
@@ -315,7 +315,7 @@ int MSocket::recv( void* buffer, size_t length, int flags )
         if ( ::recv( m_sock, buffer, length, flags ) == -1 )
         {
             ERROR_STD_STREAM_LOG( g_logger ) << "receive error errno=" << S( errno )
-                                             << " errstr=" << strerror( errno ) << "%n%0";
+                                             << " errstr=" << strerror( errno ) << Logger::endl();
             return -1;
         }
         return 1;
@@ -429,7 +429,7 @@ Address::ptr MSocket::getLocalAddress()
     {
         ERROR_STD_STREAM_LOG( g_logger )
         << "getsockname error sock=" << S( m_sock ) << " errno=" << S( errno )
-        << " errstr=" << strerror( errno ) << "%n%0";
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return Address::ptr( new UnknownAddress( m_family ) );
     }
     if ( m_family == AF_UNIX )
@@ -498,7 +498,7 @@ void MSocket::newSock()
     {
         ERROR_STD_STREAM_LOG( g_logger )
         << "socket(" << S( m_family ) << ", " << S( m_type ) << ", " << S( m_protocol )
-        << ") errno=" << S( errno ) << " errstr=" << strerror( errno ) << "%n%0";
+        << ") errno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
     }
 }
 }

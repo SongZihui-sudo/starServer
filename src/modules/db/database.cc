@@ -224,7 +224,7 @@ bool levelDB::Get( std::string key, std::string& value )
         return true;
     }
 
-    FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Get Error:" << status.ToString() << "%n"
+    FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Get Error:" << status.ToString() << "key: " << key << "%n"
                                            << "%0";
     return false;
 }
@@ -248,6 +248,10 @@ levelDBList::levelDBList( levelDB::ptr db, std::string obj_name )
 
 bool levelDBList::push_back( std::string value )
 {
+    if ( is_same( value ) )
+    {
+        return false;
+    }
     std::string key = levelDB::joinkey( { this->m_name, S( this->length ) } ); /* 拼一下键值 */
     bool flag = this->m_db->Put( key, value );
     if ( flag )
@@ -274,6 +278,10 @@ bool levelDBList::pop_back()
 
 bool levelDBList::push_front( std::string value )
 {
+    if ( is_same( value ) )
+    {
+        return false;
+    }
     for ( size_t i = this->length; i > 0; i-- )
     {
         std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
@@ -329,6 +337,10 @@ bool levelDBList::pop_front()
 
 bool levelDBList::insert( size_t index, std::string value )
 {
+    if ( is_same( value ) )
+    {
+        return false;
+    }
     for ( size_t i = this->length; i > 0; i-- )
     {
         std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
@@ -347,7 +359,7 @@ bool levelDBList::insert( size_t index, std::string value )
     }
 
     std::string key = levelDB::joinkey( { this->m_name, S( index ) } ); /* 拼一下键值 */
-    bool flag = this->m_db->Put( key, value );
+    bool flag       = this->m_db->Put( key, value );
     if ( !flag )
     {
         return false;
@@ -414,6 +426,19 @@ int32_t levelDBList::find( std::string value )
     }
 
     return index;
+}
+
+bool levelDBList::is_same( std::string value )
+{
+    for ( size_t i = 0; i < this->size(); i++ )
+    {
+        if ( this->get( i ) == value )
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 }

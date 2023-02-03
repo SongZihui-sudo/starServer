@@ -8,6 +8,9 @@
 
 namespace star
 {
+/*
+    io lock 锁
+ */
 class io_lock
 {
 protected:
@@ -16,7 +19,8 @@ protected:
         read_lock    = 0,
         write_lock   = 1,
         read_unlock  = 2,
-        write_unlock = 3
+        write_unlock = 3,
+        none_lock    = 5
     };
 
 public:
@@ -41,16 +45,14 @@ public:
 
 public:
     /* 如果文件被锁，锁的类型 */
-    lock_type get_lock_type() { return this->m_lock_type; }
+    lock_type get_lock_type() { return this->m_signal; }
 
     /* 是否被锁 */
     bool is_lock() { return flag; };
 
 private:
-    bool flag;
-    int32_t m_signal;      /* 信号 */
-    int64_t m_fid;         /* 文件 id */
-    lock_type m_lock_type; /* 锁的类型 */
+    lock_type m_signal = none_lock;
+    bool flag = false;
 };
 }
 

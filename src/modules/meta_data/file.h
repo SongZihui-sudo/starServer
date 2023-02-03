@@ -97,7 +97,7 @@ public:
     std::string get_name() { return this->m_name; }
 
     /* 块数 */
-    size_t chunks_num() { return this->chunks.size(); }
+    size_t chunks_num() { return this->m_chunks_num; }
 
     /* 路径修改 */
     bool move( std::string new_path );
@@ -117,6 +117,21 @@ public:
 
     /* 追加一个块的元数据 */
     bool append_meta_data( std::string addr, int16_t port );
+
+    /* 生成文件资源的 key 值 */
+    std::string join() { return this->m_name + "::" + this->m_path; }
+
+    /* 生成文件资源的 key 值 */
+    static std::string join( std::string file_name, std::string file_path )
+    {
+        return file_name + "::" + file_path;
+    }
+
+    /* 设置 chunks 的大小 */
+    void set_chunks_num( size_t chunks_num ) { this->m_chunks_num = chunks_num; }
+
+    /* 重载 */
+    void set_chunks_num();
 
 private:
     int64_t current_operation_time;   /* 最近一次操作的时间戳 */

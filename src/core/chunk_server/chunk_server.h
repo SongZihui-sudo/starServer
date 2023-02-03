@@ -69,7 +69,7 @@ protected:
         << "  ___) | | |_  | (_| | | |    |  _|   \\__ \\\n"
         << " |____/   \\__|  \\__,_| |_|    |_|     |___/\n"
         << "                            ----> Chunk Server Exploded version"
-        << "%n%0";
+        << Logger::endl();
     }
 
 private:

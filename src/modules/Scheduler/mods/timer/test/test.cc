@@ -7,7 +7,7 @@ star::Logger::ptr g_logger( STAR_NAME( "timer_test_logger" ) );
 void foo()
 {
     INFO_STD_STREAM_LOG( g_logger ) << "Time Test!"
-                                    << "%n%0";
+                                    << Logger::endl();
 }
 
 int main()

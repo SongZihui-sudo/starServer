@@ -40,19 +40,19 @@ void Timer::start()
     start_time = getTime();
     INFO_STD_STREAM_LOG( g_logger ) << "%D"
                                     << "Timer Start!"
-                                    << "%n%0";
+                                    << Logger::endl();
     /* 阻塞进程，等待到达时间后执行回调函数 */
     while ( true )
     {
         int64_t current_time = getTime();
         // DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-        //                                  << "%n%0";
+        //                                  << Logger::endl();
         /* 到达时间 */
         if ( current_time - start_time == secends )
         {
             INFO_STD_STREAM_LOG( g_logger ) << "%D"
                                             << "Timer End! Call call-back function!"
-                                            << "%n%0";
+                                            << Logger::endl();
             /* 执行回调函数 */
             callback_func();
             break; /* 退出循环 */

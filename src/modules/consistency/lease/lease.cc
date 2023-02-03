@@ -33,7 +33,7 @@ void lease::renew()
     }
     else
     {
-        WERN_STD_STREAM_LOG(g_logger) << "The lease has expired and cannot be renewed." << "%n%0";
+        WERN_STD_STREAM_LOG(g_logger) << "The lease has expired and cannot be renewed." << Logger::endl();
     }
 }
 
@@ -52,13 +52,13 @@ void lease_manager::destory_lease( std::string id )
     {
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                          << "Remove Lease Successfully!"
-                                         << "%n%0";
+                                         << Logger::endl();
     }
     else
     {
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                          << "Remove Lease fail!"
-                                         << "%n%0";
+                                         << Logger::endl();
     }
 }
 
@@ -69,11 +69,11 @@ void lease_manager::renew_lease( std::string id )
         this->lease_tab[id]->renew();
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                          << "Renew Lease Successfully!"
-                                         << "%n%0";
+                                         << Logger::endl();
     }
     DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                      << "Renew Lease fail!"
-                                     << "%n%0";
+                                     << Logger::endl();
 }
 
 bool lease_manager::is_all_late()

@@ -145,7 +145,7 @@ public:
 
         if ( !err.empty() )
         {
-            FATAL_STD_STREAM_LOG( this->m_logger ) << "%D" << err << "%n%0";
+            FATAL_STD_STREAM_LOG( this->m_logger ) << "%D" << err << Logger::endl();
 
             return false;
         }
@@ -171,11 +171,11 @@ public:
         << "\nfile path：" << this->m_protocol.path
         << "\nfile data:" << this->m_protocol.data << "\nfrom: " << this->m_protocol.from
         << "\npackage size: " << S( this->m_protocol.package_size ) << "\nCustomize Info: "
-        << "%n%0";
+        << Logger::endl();
         int i = 0;
         for ( auto item : this->m_protocol.customize )
         {
-            INFO_STD_STREAM_LOG( this->m_logger ) << "Customize[" << S( i ) << "]: " << item << "%n%0";
+            INFO_STD_STREAM_LOG( this->m_logger ) << "Customize[" << S( i ) << "]: " << item << Logger::endl();
             i++;
         }
     }
