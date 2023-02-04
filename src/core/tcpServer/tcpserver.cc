@@ -1,9 +1,5 @@
 #include "./tcpserver.h"
-#include "../../modules/common/common.h"
-#include "modules/Scheduler/scheduler.h"
-#include "modules/db/database.h"
 #include "modules/log/log.h"
-#include "modules/protocol/protocol.h"
 
 #include <csignal>
 #include <cstddef>
@@ -53,7 +49,8 @@ void tcpserver::wait( void respond(), void* self )
 {
     /* 运行调度器 */
     server_scheduler.reset( new Scheduler( this->max_connects, this->max_connects ) );
-
+    this->m_service_manager->register_service( "free_thread_checker",
+                                               std::function< void() >( Scheduler::check_free_thread ) );
     /* 监听 socket 连接 */
     this->m_status = Normal;
 
@@ -109,18 +106,25 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
         /* 初始化缓冲区 */
         char* buffer = new char[buffer_size];
-        remote_sock->recv( buffer, buffer_size, MSG_NOSIGNAL );
+        if(remote_sock->recv( buffer, buffer_size, MSG_NOSIGNAL ) == -1)
+        {
+            delete[] buffer;
+            return nullptr;
+        }
         std::string ready = buffer;
         if ( ready.empty() || ready[0] != '{' )
         {
+            delete[] buffer;
             return nullptr;
         }
 
         /* 把缓冲区中读到的字符转换成为json格式 */
         if ( !protocoler->toJson( ready ) )
         {
-            FATAL_STD_STREAM_LOG( g_logger ) << "Serialization failed."
-                                             << "string: " << ready << "length: " << S(ready.size()) << Logger::endl();
+            FATAL_STD_STREAM_LOG( g_logger )
+            << "Serialization failed."
+            << "string: " << ready << "length: " << S( ready.size() ) << Logger::endl();
+            delete[] buffer;
             return nullptr;
         }
 
@@ -129,7 +133,7 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
         INFO_STD_STREAM_LOG( g_logger ) << "****************** Get Message " << S( getTime() )
                                         << " ******************" << Logger::endl();
-        protocoler->display();
+        INFO_STD_STREAM_LOG( g_logger ) << ready << Logger::endl();
         INFO_STD_STREAM_LOG( g_logger )
         << "*************************************************" << Logger::endl();
 
@@ -159,7 +163,7 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
 
     INFO_STD_STREAM_LOG( g_logger ) << "****************** Send Message " << S( getTime() )
                                     << " ******************" << Logger::endl();
-    protocoler->display();
+    INFO_STD_STREAM_LOG( g_logger ) << buffer << Logger::endl();
     INFO_STD_STREAM_LOG( g_logger )
     << "*************************************************" << Logger::endl();
 

@@ -18,6 +18,7 @@ file::file( std::string file_name, std::string file_path, int32_t default_chunk_
     this->default_chunk_size = default_chunk_size;
     this->m_name             = file_name;
     this->m_path             = file_path;
+    this->m_lock.reset(new io_lock());
 }
 
 bool file::open( levelDB::ptr db_ptr )
@@ -33,8 +34,7 @@ bool file::open( levelDB::ptr db_ptr )
     this->set_chunks_num();
     for ( size_t i = 0; i < this->m_chunks_num; i++ )
     {
-        chunk::ptr cur_chunk( new chunk( this->m_name, this->m_path, i ) );
-        this->chunks.push_back( cur_chunk );
+        this->chunks.push_back( chunk::ptr(new chunk( this->m_name, this->m_path, i )) );
     }
 
     this->current_operation_time = getTime();
@@ -105,12 +105,15 @@ bool file::append( file_operation flag, std::string buffer )
     chunk::ptr new_chunk( new chunk( this->m_name, this->m_path, this->chunks.size() ) );
     new_chunk->open( m_db );
     ret_flag = new_chunk->write( file_operation::write, buffer );
-    this->chunks.push_back( new_chunk );
     new_chunk->close();
-
-    this->current_operation_time = getTime();
+    this->chunks.push_back( new_chunk );
     this->m_chunks_num++;
+    BREAK(g_logger);
+    this->m_lock->lock_write(file_operation::write);
     this->m_db->Put( this->join(), S( this->m_chunks_num ) );
+    this->current_operation_time = getTime();
+    this->m_lock->release_write();
+    BREAK(g_logger);
 
     return ret_flag;
 }

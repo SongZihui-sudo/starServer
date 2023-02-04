@@ -36,9 +36,19 @@ public:
         std::string addr;               /* ip 地址 */
         std::int64_t port;              /* 端口 */
         int64_t current_operation_time; /* 最近一次操作的时间 */
+        bool is_need_sync = false;              /* 是否需要同步 */
 
         /* 生成一个关于 chunk server 地址的键值 */
         std::string join() { return this->addr + ":" + S( this->port ); }
+
+        bool operator==( chunk_server_info other )
+        {
+            if ( this->addr == other.addr && this->port == other.port )
+            {
+                return true;
+            }
+            return false;
+        }
 
         static std::string join( std::string addr, std::int64_t port )
         {

@@ -119,6 +119,9 @@ class LogManager;
     LoggerName->set_level( star::LogLevel::level::FATAL );                                 \
     *( LoggerName ) << "<< FATAL >> "
 
+#define BREAK(LoggerName)  \
+    DEBUG_STD_STREAM_LOG(LoggerName) << "<< DEBUG-BREAK-POINT >>" << __FILE__ << " " << S(__LINE__) <<  Logger::endl();
+
 /* 把所有日志写入文件 */
 #define ALL_LOG_TO_FILE( managerName ) managerName.tofile();
 

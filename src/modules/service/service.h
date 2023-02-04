@@ -20,11 +20,20 @@ namespace star
 class service_manager
 {
 protected:
+    enum service_status{
+        Init = 0,
+        Free = 1,
+        Runing = 2,
+        Fail = 3
+    };
+
     struct service
     {
         std::string name;
         std::function< void() > func;
         Threading::ptr thread;
+        service_status status;
+
     };
 
 public:

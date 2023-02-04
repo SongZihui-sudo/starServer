@@ -12,7 +12,16 @@ namespace star
 {
 std::vector< void* > Schedule_args = {};
 pthread_mutex_t mutex;
-int Schedule_answer = -1;
+int Schedule_answer                                = -1;
+int16_t Scheduler::thread_free_time                = 0;
+std::vector< Threading::ptr > Scheduler::m_threads = {}; /* 线程池 */
+static Logger::ptr g_logger( STAR_NAME( "scheduler_logger" ) );
+
+Scheduler::Scheduler( size_t max_threads, size_t max_fibers )
+{
+    this->max_threads = max_threads;
+    this->max_fibers  = max_fibers;
+}
 
 void Scheduler::Regist_task( std::function< void() > t_func, std::string t_name )
 {
@@ -45,7 +54,7 @@ void Scheduler::assign_task( task& t_task )
     else
     {
         /* 无法创建新线程，达到上限，分配任务失败 */
-        FATAL_STD_STREAM_LOG( this->m_logger )
+        FATAL_STD_STREAM_LOG( g_logger )
         << "The number of threads has reached the maximum, and new tasks cannot be "
            "assigned."
         << Logger::endl();
@@ -78,7 +87,7 @@ void Scheduler::delete_task( std::string t_name )
     {
         if ( result_index == -2 )
         {
-            DOTKNOW_STD_STREAM_LOG( this->m_logger ) << "NOT FOUND THE TASK!%n%0";
+            DOTKNOW_STD_STREAM_LOG( g_logger ) << "NOT FOUND THE TASK!%n%0";
             break;
         }
         else if ( result_index > 0 )
@@ -125,7 +134,7 @@ void Scheduler::reset_task( std::string t_name, std::function< void() > t_func )
     {
         if ( result_index == -2 )
         {
-            DOTKNOW_STD_STREAM_LOG( this->m_logger ) << "NOT FOUND THE TASK!%n%0";
+            DOTKNOW_STD_STREAM_LOG( g_logger ) << "NOT FOUND THE TASK!%n%0";
             break;
         }
         else if ( result_index > 0 )
@@ -172,24 +181,29 @@ void Scheduler::manage()
         this->assign_task( *this->m_tasks.begin() );
         this->m_tasks.pop_front();
     }
+}
 
+void Scheduler::check_free_thread()
+{
+    INFO_STD_STREAM_LOG( g_logger ) << "Begin check the free thread in pool" << Logger::endl();
     /* 查看空闲的进程, 空闲时间过长的话，杀死这个进程*/
     int64_t current_time = getTime();
     int i                = 0;
-    for ( auto item : this->m_threads )
+    for ( auto item : Scheduler::m_threads )
     {
         if ( item->get_status() == Threading::FREE )
         {
             int64_t free_time = current_time - item->get_task_end_time();
-            /* 默认为30秒 */
-            if ( free_time > this->thread_free_time )
+            if ( free_time > Scheduler::thread_free_time )
             {
-                /* 删除这个线程 */
-                this->m_threads.erase( this->m_threads.begin() + i );
+                Scheduler::m_threads.erase( Scheduler::m_threads.begin() + i );
             }
         }
         i++;
     }
+    INFO_STD_STREAM_LOG( g_logger ) << "End check the free thread in pool" << Logger::endl();
+    sleep( Scheduler::thread_free_time );
+    check_free_thread();
 }
 
 }

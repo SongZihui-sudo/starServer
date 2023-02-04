@@ -39,8 +39,8 @@ void chunk_server::respond()
 
         if ( !remote_sock )
         {
-            FATAL_STD_STREAM_LOG( g_logger ) << "The connection has not been established."
-                                             << Logger::endl();
+            FATAL_STD_STREAM_LOG( g_logger )
+            << "The connection has not been established." << Logger::endl();
             return;
         }
 
@@ -56,8 +56,8 @@ void chunk_server::respond()
         if ( !current_procotol )
         {
             FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                             << "Receive Message Error"
-                                             << Logger::endl();
+                                             << "Receive Message Error" << Logger::endl();
+            return;
         }
 
         protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
@@ -80,28 +80,25 @@ void chunk_server::respond()
 */
 void chunk_server::deal_with_108( std::vector< void* > args )
 {
-    server_lock->lock_write(file_operation::write);
+    server_lock->lock_write( file_operation::write );
     chunk_server* self            = ( chunk_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
     MSocket::ptr remote_sock;
-    remote_sock.reset((MSocket*)args[3]);
-    std::string flag              = "true";
-    
-    file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    cur_file->open( self->m_db );                                   /* 打开文件 */
+    remote_sock.reset( ( MSocket* )args[3] );
+    std::string flag = "true";
+    file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );    
+    cur_file->open( self->m_db );                          /* 打开文件 */
     bool bit = cur_file->append( file_operation::write, cur.data ); /* 写文件, 追加 */
     cur_file->close();                                              /* 关闭文件 */
 
     if ( !bit )
     {
         FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                         << "Append file data fail!"
-                                         << Logger::endl();
+                                         << "Append file data fail!" << Logger::endl();
         flag = "false";
     }
     INFO_STD_STREAM_LOG( g_logger ) << "%D"
-                                    << "Append file data successfully!"
-                                    << Logger::endl();
+                                    << "Append file data successfully!" << Logger::endl();
 
     cur.reset( 116, self->m_sock->getLocalAddress()->toString(), "", "", 0, flag, {} );
     tcpserver::send( remote_sock, cur );
@@ -175,7 +172,7 @@ void chunk_server::deal_with_110( std::vector< void* > args )
     std::string flag;
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
     int index = std::stoi( cur.customize[0] );
-    cur_file->open(self->m_db);
+    cur_file->open( self->m_db );
     cur_file->read( file_operation::read, data, index );
     cur_file->close();
 

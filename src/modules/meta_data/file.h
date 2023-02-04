@@ -142,6 +142,7 @@ private:
     std::string m_path;               /* 文件路径 */
     int32_t m_chunks_num;             /* 块数 */
     int32_t default_chunk_size;
+    io_lock::ptr m_lock; /* 锁 */
 };
 
 }

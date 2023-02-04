@@ -65,12 +65,7 @@ public:
 
 public:
     typedef std::shared_ptr< Scheduler > ptr;
-    Scheduler( size_t max_threads = 5, size_t max_fibers = 5 )
-    {
-        this->max_threads = max_threads;
-        this->max_fibers  = max_fibers;
-        m_logger.reset( STAR_NAME( "SCHEDULER" ) );
-    }
+    Scheduler( size_t max_threads = 5, size_t max_fibers = 5 );
     ~Scheduler() = default;
 
 private:
@@ -98,19 +93,18 @@ public:
      */
     virtual void reset_task( std::string t_name, std::function< void() > t_func );
 
-    /* 获取信号量 */
-    // sem_t get_sem() { return m_thread->get_sem(); }
-
     /* 调度 */
     void manage();
+
+    /* 处理空闲进程 */
+    static void check_free_thread();
 
 protected:
     size_t max_fibers;                       /* 最大协程数 */
     size_t max_threads;                      /* 最大线程数 */
     std::deque< Scheduler::task > m_tasks;   /* 任务池 */
-    std::vector< Threading::ptr > m_threads; /* 线程池 */
-    Logger::ptr m_logger;                    /* 日志器 */
-    int16_t thread_free_time;
+    static std::vector< Threading::ptr > m_threads; /* 线程池 */
+    static int16_t thread_free_time;
 };
 
 static thread_local std::deque< Scheduler::task > arr;

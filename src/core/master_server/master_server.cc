@@ -81,7 +81,7 @@ master_server::master_server( std::filesystem::path settings_path )
             << "Get File path: " << file_path_list->get( j ) << Logger::endl();
             file::ptr new_file(
             new file( file_name_list->get( i ), file_path_list->get( j ), this->max_chunk_size ) );
-            std::string value;
+            new_file->open( this->m_db );
             /* 初始化 meta data tab */
             meta_data_tab[new_file->join()] = new_file;
             /* 初始化 chunk server meta data */
@@ -89,12 +89,11 @@ master_server::master_server( std::filesystem::path settings_path )
             {
                 std::vector< std::string > arr;
                 chunk::ptr cur_chunk( new chunk( new_file->get_name(), new_file->get_path(), k ) );
-                cur_chunk->open( this->m_db );
-                cur_chunk->read_meta_data( arr );
-                cur_chunk->close();
+                new_file->read_chunk_meta_data( k, arr );
                 chunk_server_meta_data[chunk_server_info::join( arr[0], std::stoi( arr[1] ) )]
                 .push_back( std::tuple< std::string, size_t >( new_file->join(), k ) );
             }
+            new_file->close();
             if ( !( ( i - j ) % ( this->copys - 1 ) ) && i != 0 && j != 0 )
             {
                 j++;
@@ -174,16 +173,17 @@ void master_server::replace_unconnect_chunk()
                         file::ptr copy_file( new file( "copy-" + S( k ) + "-" + cur_file->get_name(),
                                                        cur_file->get_path(),
                                                        this->max_chunk_size ) );
+                        std::vector< std::string > copy_res;
                         /* 读出元数据 */
                         copy_file->open( this->m_db );
-                        copy_file->read_chunk_meta_data( i, res );
+                        copy_file->read_chunk_meta_data( i, copy_res );
                         copy_file->close();
 
                         bool flag = false;
                         /* 查这个chunk server是否在线 */
                         for ( auto server : fail_chunk_server )
                         {
-                            if ( server.addr == res[0] && server.port == std::stoi( res[1] ) )
+                            if ( server.addr == copy_res[0] && server.port == std::stoi( copy_res[1] ) )
                             {
                                 flag = true;
                                 break;
@@ -192,10 +192,19 @@ void master_server::replace_unconnect_chunk()
 
                         if ( !flag )
                         {
+                            /* 把不在线的 chunk server 标记为需要同步 */
+                            for ( auto server : chunk_server_list )
+                            {
+                                if ( server == item )
+                                {
+                                    server.is_need_sync = true;
+                                    break;
+                                }
+                            }
                             /* 修改元数据表中的元数据 */
                             meta_data_tab[cur_file->join()]->open( this->m_db );
                             meta_data_tab[cur_file->join()]->record_chunk_meta_data(
-                            i, res[0], std::stoi( res[1] ) );
+                            i, copy_res[0], std::stoi( copy_res[1] ) );
                             meta_data_tab[cur_file->join()]->close();
                             /* 结束 */
                             break;
@@ -221,10 +230,12 @@ void master_server::sync_chunk( chunk_server_info cur_server )
         INFO_STD_STREAM_LOG( g_logger )
         << "%D"
         << "Chunk server connected!, check it is need sync chunk!" << Logger::endl();
-
         /* 遍历不在线的chunk */
         for ( auto item : chunk_server_meta_data[cur_server.join()] )
         {
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "Server have " << S( chunk_server_meta_data[cur_server.join()].size() )
+            << "Chunks" << Logger::endl();
             std::vector< std::string > arr;
             file::ptr cur_file = meta_data_tab[std::get< 0 >( item )];
             if ( !cur_file )
@@ -233,15 +244,21 @@ void master_server::sync_chunk( chunk_server_info cur_server )
             }
             /* 读当前这个块的元数据的地址与这个刚连接上的chunk server，地址是否相同，不同则被副本替代，需要同步 */
             cur_file->open( master_server::m_db );
-            INFO_STD_STREAM_LOG( g_logger ) << S( cur_file->chunks_num() ) << Logger::endl();
             cur_file->read_chunk_meta_data( std::get< 1 >( item ), arr );
+            DEBUG_STD_STREAM_LOG( g_logger ) << "chunk server info: " << cur_server.addr
+                                             << ":" << S( cur_server.port ) << Logger::endl();
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "Meta Data: " << arr[0] << ":" << arr[1] << Logger::endl();
             cur_file->close();
             if ( arr[0] == cur_server.addr && std::stoi( arr[1] ) == cur_server.port )
             {
                 /* 不需要同步 */
+                DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "No Need sync chunk" << Logger::endl();
                 continue;
             }
-
+            DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+                                             << "Nedd sync chunk" << Logger::endl();
             /* 需要同步 */
             IPv4Address::ptr addr = IPv4Address::Create( arr[0].c_str(), std::stoi( arr[1] ) );
             MSocket::ptr sock     = MSocket::CreateTCP( addr );
@@ -255,7 +272,8 @@ void master_server::sync_chunk( chunk_server_info cur_server )
             }
 
             /* 询问块数据 */
-            protocol::Protocol_Struct cur( 110, "", cur_file->get_name(), cur_file->get_path(), 0, "", {} );
+            protocol::Protocol_Struct cur(
+            110, "", cur_file->get_name(), cur_file->get_path(), 0, "", {} );
             cur.customize.push_back( S( std::get< 1 >( item ) ) );
             tcpserver::send( sock, cur );
 
@@ -340,7 +358,17 @@ void master_server::respond()
         /* 获取this指针 */
         master_server* self = ( master_server* )( master_server* )arg_ss.top();
 
+        if ( !self )
+        {
+            return;
+        }
+
         MSocket::ptr remote_sock = sock_ss.top();
+
+        if ( !remote_sock->isConnected() )
+        {
+            return;
+        }
 
         if ( !remote_sock )
         {
@@ -362,6 +390,7 @@ void master_server::respond()
         {
             FATAL_STD_STREAM_LOG( g_logger ) << "%D"
                                              << "Receive Message Error" << Logger::endl();
+            return;
         }
 
         protocol::Protocol_Struct cur = current_procotol->get_protocol_struct();
@@ -507,9 +536,12 @@ void master_server::check_chunk_server()
                 << S( chunk_server_list[i].port ) << " Online!" << Logger::endl();
                 tcpserver::send( sock, cur );
                 available_chunk_server.push_back( chunk_server_list[i] );
-
-                /* 连接成功后，同步chunk */
-                sync_chunk( chunk_server_list[i] );
+                if ( chunk_server_list[i].is_need_sync )
+                {
+                    /* 连接成功后，同步chunk */
+                    sync_chunk( chunk_server_list[i] );
+                    chunk_server_list[i].is_need_sync = false;
+                }
             }
 
             sock->close();
@@ -609,9 +641,36 @@ void master_server::deal_with_104( std::vector< void* > args )
         {
         }
 
-        while ( cur.data != "file End" )
+        while ( true )
         {
-            
+            /* 接受一个包 */
+            protocol::ptr current_protocol = tcpserver::recv( remote_sock, self->buffer_size );
+            if ( !current_protocol )
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "get package error!" << Logger::endl();
+                server_lock->release_write();
+                return;
+            }
+            cur = current_protocol->get_protocol_struct();
+            if ( cur.bit != 104 )
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "error server bit command!" << Logger::endl();
+                server_lock->release_write();
+                return;
+            }
+            if ( cur.data == "file End" )
+            {
+                INFO_STD_STREAM_LOG( g_logger ) << "%D" << cur.data << Logger::endl();
+                break;
+            }
+            else if ( cur.data == "file begin" )
+            {
+                cur.reset( 132, "", "", "", 0, "ok", {} );
+                tcpserver::send( remote_sock, cur );
+                continue;
+            }
             std::string file_name = cur.file_name;
             std::string file_path = cur.path;
             std::string data      = cur.data;
@@ -640,6 +699,8 @@ void master_server::deal_with_104( std::vector< void* > args )
                         std::ranlux48 engine( seed() );
                         std::uniform_int_distribution<> distrib( 0, available_chunk_server.size() - 1 );
                         random = distrib( engine );
+                        DEBUG_STD_STREAM_LOG( g_logger )
+                        << "random num: " << S( random ) << Logger::endl();
                         /* 与 chunk server 通讯 */
                         addr = IPv4Address::Create( available_chunk_server[random].addr.c_str(),
                                                     available_chunk_server[random].port );
@@ -675,6 +736,7 @@ void master_server::deal_with_104( std::vector< void* > args )
                             FATAL_STD_STREAM_LOG( g_logger )
                             << "%D"
                             << "Append meta data error!" << Logger::endl();
+                            continue;
                         }
 
                         file_name_list->push_back( temp_file_name );
@@ -696,27 +758,9 @@ void master_server::deal_with_104( std::vector< void* > args )
                     }
                 }
             }
-
+            data.clear();
             cur.reset( 132, "", "", "", 0, result, {} );
             tcpserver::send( remote_sock, cur );
-
-            /* 接受一个包 */
-            protocol::ptr current_protocol = tcpserver::recv( remote_sock, self->buffer_size );
-            if ( !current_protocol )
-            {
-                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                                 << "get package error!" << Logger::endl();
-                server_lock->release_write();
-                return;
-            }
-            cur = current_protocol->get_protocol_struct();
-            if ( cur.bit != 104 )
-            {
-                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                                 << "error server bit command!" << Logger::endl();
-                server_lock->release_write();
-                return;
-            }
         }
 
         cur.reset( 131, "", "", "", 0, "finish", {} );
