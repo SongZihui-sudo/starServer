@@ -86,10 +86,10 @@ void chunk_server::deal_with_108( std::vector< void* > args )
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
     std::string flag = "true";
-    file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );    
-    cur_file->open( self->m_db );                          /* 打开文件 */
-    bool bit = cur_file->append( file_operation::write, cur.data ); /* 写文件, 追加 */
-    cur_file->close();                                              /* 关闭文件 */
+    file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
+    cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
+    bool bit = cur_file->append( cur.data );             /* 写文件, 追加 */
+    cur_file->close();                                   /* 关闭文件 */
 
     if ( !bit )
     {
@@ -117,9 +117,9 @@ void chunk_server::deal_with_122( std::vector< void* > args )
 
     std::string file_new_path = cur.customize[0];
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    cur_file->open( self->m_db );               /* 打开文件 */
-    bool bit = cur_file->move( file_new_path ); /* 移动文件 */
-    cur_file->close();                          /* 关闭文件 */
+    cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
+    bool bit = cur_file->move( file_new_path );          /* 移动文件 */
+    cur_file->close();                                   /* 关闭文件 */
 
     if ( !bit )
     {
@@ -140,9 +140,9 @@ void chunk_server::deal_with_113( std::vector< void* > args )
     std::string flag              = "true";
     int port                      = self->m_settings->get( "server" )["port"].asInt();
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    cur_file->open( self->m_db ); /* 打开文件 */
+    cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
     size_t index = std::stoi( cur.customize[0] );
-    bool bit     = cur_file->del( file_operation::write, index );
+    bool bit     = cur_file->del( index );
     cur_file->close(); /* 关闭文件 */
 
     if ( !bit )
@@ -170,21 +170,25 @@ void chunk_server::deal_with_110( std::vector< void* > args )
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
     std::string data;
     std::string flag;
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+
+    if ( cur.file_name.empty() || cur.path.empty() )
+    {
+        return;
+    }
+
+    BREAK( g_logger );
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
     int index = std::stoi( cur.customize[0] );
-    cur_file->open( self->m_db );
-    cur_file->read( file_operation::read, data, index );
+    cur_file->open( file_operation::read, self->m_db );
+    bool read_flag = cur_file->read( data, index );
     cur_file->close();
+    BREAK( g_logger );
 
     /* 回复消息 */
-    cur.reset( 115,
-               self->m_sock->getLocalAddress()->toString(),
-               cur_file->get_name(),
-               cur_file->get_path(),
-               0,
-               data,
-               { S( index ) } );
-
+    cur.reset( 115, "", cur_file->get_name(), cur_file->get_path(), data.size(), data, { S( index ) } );
+    BREAK( g_logger );
     tcpserver::send( remote_sock, cur );
 }
 

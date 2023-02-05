@@ -106,15 +106,17 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
 
         /* 初始化缓冲区 */
         char* buffer = new char[buffer_size];
-        if(remote_sock->recv( buffer, buffer_size, MSG_NOSIGNAL ) == -1)
+        if ( remote_sock->recv( buffer, buffer_size, MSG_NOSIGNAL ) == -1 )
         {
             delete[] buffer;
+            buffer = nullptr;
             return nullptr;
         }
         std::string ready = buffer;
         if ( ready.empty() || ready[0] != '{' )
         {
             delete[] buffer;
+            buffer = nullptr;
             return nullptr;
         }
 
@@ -125,6 +127,7 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
             << "Serialization failed."
             << "string: " << ready << "length: " << S( ready.size() ) << Logger::endl();
             delete[] buffer;
+            buffer = nullptr;
             return nullptr;
         }
 
@@ -138,6 +141,7 @@ protocol::ptr tcpserver::recv( MSocket::ptr remote_sock, size_t buffer_size )
         << "*************************************************" << Logger::endl();
 
         delete[] buffer;
+        buffer = nullptr;
 
         return protocoler;
     }
@@ -160,6 +164,10 @@ int tcpserver::send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf )
     std::string buffer = protocoler->toStr();
 
     int flag = remote_sock->send( buffer.c_str(), buffer.size(), MSG_NOSIGNAL );
+    if ( flag == -1 )
+    {
+        return -1;
+    }
 
     INFO_STD_STREAM_LOG( g_logger ) << "****************** Send Message " << S( getTime() )
                                     << " ******************" << Logger::endl();

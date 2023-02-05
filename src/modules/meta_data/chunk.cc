@@ -1,21 +1,35 @@
 #include "chunk.h"
 #include "core/master_server/master_server.h"
 #include "modules/consistency/io_lock/io_lock.h"
+#include "modules/db/database.h"
 #include "modules/log/log.h"
-#include "modules/meta_data/meta_data.h"
 #include <string>
 
 namespace star
 {
+chunk::chunk( std::string file_url, size_t index )
+{
+    this->m_url = levelDB::joinkey( { file_url, S( index ) } );
+    this->index = index;
+    this->m_lock.reset( new io_lock() );
+    size_t sub_str_end1 = file_url.find( '|' );
+    this->m_name        = file_url.substr( 0, sub_str_end1 );
+    size_t sub_str_end2 = file_url.find( '|', sub_str_end1 + 1 );
+    this->m_path        = file_url.substr( sub_str_end1 + 1, sub_str_end2 - 1 );
+    this->m_path.pop_back();
+}
+
 chunk::chunk( std::string name, std::string path, size_t index )
 {
-    this->m_name = name;
-    this->m_path = path;
-    this->index  = index;
+    this->m_name         = name;
+    this->m_path         = path;
+    std::string file_url = this->join( name, path );
+    this->m_url          = levelDB::joinkey( { file_url, S( index ) } );
+    this->index          = index;
     this->m_lock.reset( new io_lock() );
 }
 
-bool chunk::open( levelDB::ptr db_ptr )
+bool chunk::open( file_operation flag, levelDB::ptr db_ptr )
 {
     if ( !db_ptr )
     {
@@ -26,24 +40,22 @@ bool chunk::open( levelDB::ptr db_ptr )
 
     std::string temp = "";
 
-    this->open_flag = true;
+    this->m_operation_flag = flag;
+    this->open_flag        = true;
 
     return true;
 }
 
-bool chunk::write( file_operation flag, std::string buffer )
+bool chunk::write( std::string buffer )
 {
     if ( !open_flag )
     {
         return false;
     }
 
-    this->m_lock->lock_write( flag ); /* 上写锁 */
+    this->m_lock->lock_write( this->m_operation_flag ); /* 上写锁 */
 
-    /* 拼一下键值 */
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ) } );
-
-    bool write_flag = this->m_db->Put( key, buffer );
+    bool write_flag = this->m_db->Put( this->m_url, buffer );
     this->m_size += buffer.size();
 
     this->m_lock->release_write(); /* 解开写锁 */
@@ -51,19 +63,16 @@ bool chunk::write( file_operation flag, std::string buffer )
     return write_flag;
 }
 
-bool chunk::read( file_operation flag, std::string& buffer )
+bool chunk::read( std::string& buffer )
 {
     if ( !open_flag )
     {
         return false;
     }
 
-    this->m_lock->lock_read( flag ); /* 上读锁 */
+    this->m_lock->lock_read( this->m_operation_flag ); /* 上读锁 */
 
-    /* 拼一下键值 */
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ) } );
-
-    bool write_flag = this->m_db->Get( key, buffer );
+    bool write_flag = this->m_db->Get( this->m_url, buffer );
 
     this->m_lock->release_read(); /* 解开读锁 */
 
@@ -80,27 +89,24 @@ bool chunk::record_meta_data()
 {
     if ( !open_flag )
     {
-        ERROR_STD_STREAM_LOG( g_logger ) << "Error, what: "
-                                         << "not open chunk!"
-                                         << Logger::endl();
         return false;
     }
 
-    this->m_lock->lock_write( file_operation::write ); /* 上写锁 */
+    this->m_lock->lock_write( this->m_operation_flag ); /* 上写锁 */
 
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "addr" } );
+    std::string key = levelDB::joinkey( { this->m_url, "addr" } );
     bool write_flag = this->m_db->Put( key, this->addr );
 
     if ( !write_flag )
     {
-        this->m_lock->lock_write( file_operation::write ); /* 上写锁 */
+        this->m_lock->release_write(); /* 上写锁 */
         return false;
     }
 
-    key        = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "port" } );
+    key        = levelDB::joinkey( { this->m_url, "port" } );
     write_flag = this->m_db->Put( key, S( this->port ) );
 
-    key        = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "index" } );
+    key        = levelDB::joinkey( { this->m_url, "index" } );
     write_flag = this->m_db->Put( key, S( this->index ) );
 
     this->m_lock->release_write(); /* 解开写锁 */
@@ -114,9 +120,9 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
     {
         return false;
     }
-    this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
+    this->m_lock->lock_read( this->m_operation_flag ); /* 上读锁 */
 
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "addr" } );
+    std::string key = levelDB::joinkey( { this->m_url, "addr" } );
     std::string temp;
     bool read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
@@ -124,9 +130,10 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
         this->m_lock->release_read(); /* 解开读锁 */
         return false;
     }
+    this->addr = temp;
     res.push_back( temp );
 
-    key       = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "port" } );
+    key       = levelDB::joinkey( { this->m_url, "port" } );
     read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
     {
@@ -134,8 +141,9 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
         return false;
     }
     res.push_back( temp );
+    this->port = std::stoi( temp );
 
-    key       = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "index" } );
+    key       = levelDB::joinkey( { this->m_url, "index" } );
     read_flag = this->m_db->Get( key, temp );
     if ( !read_flag )
     {
@@ -143,6 +151,7 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
         return false;
     }
     res.push_back( temp );
+    this->index = std::stoi( temp );
 
     this->m_lock->release_read(); /* 解开读锁 */
 
@@ -151,10 +160,10 @@ bool chunk::read_meta_data( std::vector< std::string >& res )
 
 bool chunk::copy( chunk::ptr other )
 {
-    this->m_lock->lock_write( file_operation::write );
+    this->m_lock->lock_write( this->m_operation_flag );
     this->m_db   = other->m_db;
-    this->m_name = other->m_name;
-    this->m_path = other->m_path;
+    other->m_url = this->m_url;
+    other->index = this->index;
     this->m_size = other->m_size;
     this->m_lock->release_write();
     return true;
@@ -166,43 +175,43 @@ bool chunk::del_meta_data()
     {
         return false;
     }
-    this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "addr" } );
+    this->m_lock->lock_read( this->m_operation_flag ); /* 上读锁 */
+    std::string key = levelDB::joinkey( { this->m_url, "addr" } );
     bool flag       = this->m_db->Delete( key );
     if ( !flag )
     {
-        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
+        this->m_lock->release_read();
         return false;
     }
-    key  = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "port" } );
+    key  = levelDB::joinkey( { this->m_url, "port" } );
     flag = this->m_db->Delete( key );
     if ( !flag )
     {
-        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
+        this->m_lock->release_read();
         return false;
     }
 
-    key  = levelDB::joinkey( { this->m_name, this->m_path, S( index ), "index" } );
+    key  = levelDB::joinkey( { this->m_url, "index" } );
     flag = this->m_db->Delete( key );
     if ( !flag )
     {
-        this->m_lock->lock_read( file_operation::read ); /* 上读锁 */
+        this->m_lock->release_read();
         return false;
     }
 
+    this->m_lock->release_read();
     return true;
 }
 
-bool chunk::del( file_operation flag )
+bool chunk::del()
 {
     if ( !open_flag )
     {
         return false;
     }
 
-    this->m_lock->lock_write( flag );
-    std::string key = levelDB::joinkey( { this->m_name, this->m_path, S( index ) } );
-    bool del_flag   = this->m_db->Delete( key );
+    this->m_lock->lock_write( this->m_operation_flag );
+    bool del_flag = this->m_db->Delete( this->m_url );
     this->m_lock->release_write();
     return del_flag;
 }

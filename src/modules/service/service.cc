@@ -10,7 +10,7 @@
 namespace star
 {
 
-Logger::ptr g_logger( STAR_NAME( "servers_manager_logger" ) );
+static Logger::ptr g_logger( STAR_NAME( "servers_manager_logger" ) );
 
 void service_manager::init( std::vector< std::tuple< std::string, std::function< void() > > > services )
 {

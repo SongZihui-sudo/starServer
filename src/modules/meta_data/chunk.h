@@ -17,7 +17,7 @@ class chunk
 {
 public:
     typedef std::shared_ptr< chunk > ptr;
-
+    chunk( std::string file_url, size_t index );
     chunk( std::string name, std::string path, size_t index );
     ~chunk() = default;
 
@@ -25,17 +25,17 @@ public:
     /*
         打开块
      */
-    bool open( levelDB::ptr db_ptr );
+    bool open( file_operation flag, levelDB::ptr db_ptr );
 
     /*
         写块
      */
-    bool write( file_operation flag, std::string buffer );
+    bool write( std::string buffer );
 
     /*
         读块
      */
-    bool read( file_operation flag, std::string& buffer );
+    bool read( std::string& buffer );
 
     /*
         关闭
@@ -73,28 +73,52 @@ public:
     bool copy( chunk::ptr other );
 
     /*
-        移动路径
-     */
-    void move_path( std::string new_path ) { this->m_path = new_path; }
+        删块数据
+    */
+    bool del();
 
-    /* 删块数据 */
-    bool del( file_operation flag );
-
-    /* 获取序号 */
+    /*
+        获取序号
+    */
     size_t get_index() { return this->index; }
+
+    /*
+        生成文件资源的 key 值
+    */
+    static std::string join( std::string file_name, std::string file_path )
+    {
+        return file_name + "::" + file_path;
+    }
+
+    /*
+        获取名
+    */
+    std::string get_name() { return this->m_name; }
+
+    /*
+        获取路径
+    */
+    std::string get_path() { return this->m_path; }
+
+    /*
+        获取 url
+     */
+    std::string get_url() { return this->m_url; }
 
 public:
     std::string addr;
     int16_t port;
 
 private:
-    io_lock::ptr m_lock; /* 锁 */
-    levelDB::ptr m_db;   /* 指向数据库的指针 */
-    std::string m_name;  /* 文件名 */
-    std::string m_path;  /* 文件路径 */
-    size_t index;        /* 序号 */
-    std::string buffer;  /* 缓冲区 */
-    int32_t m_size;      /* 块大小 */
+    file_operation m_operation_flag; /* 操作标志 */
+    std::string m_name;              /* 文件名 */
+    std::string m_path;              /* 路径 */
+    io_lock::ptr m_lock;             /* 锁 */
+    levelDB::ptr m_db;               /* 指向数据库的指针 */
+    std::string m_url;               /* url */
+    size_t index;                    /* 序号 */
+    std::string buffer;              /* 缓冲区 */
+    int32_t m_size;                  /* 块大小 */
     bool open_flag = false;
 };
 }
