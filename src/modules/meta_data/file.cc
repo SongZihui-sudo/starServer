@@ -21,7 +21,6 @@ file::file( std::string file_url, int32_t default_chunk_size )
     this->m_name        = file_url.substr( 0, sub_str_end1 );
     size_t sub_str_end2 = file_url.find( '|', sub_str_end1 + 1 );
     this->m_path        = file_url.substr( sub_str_end1 + 1, sub_str_end2 - 1 );
-    this->m_path.pop_back();
     this->create_time = getTime();
 }
 
@@ -31,6 +30,7 @@ file::file( std::string file_name, std::string file_path, int32_t default_chunk_
     this->m_path             = file_path;
     this->default_chunk_size = default_chunk_size;
     this->m_url              = levelDB::joinkey( { file_name, file_path } );
+    this->m_url.pop_back();
     this->m_lock.reset( new io_lock() );
 }
 
@@ -314,7 +314,7 @@ bool file::append_meta_data( std::string addr, int16_t port )
 void file::set_chunks_num()
 {
     std::string value;
-    if ( !this->m_db->Get( this->get_url(), value ) )
+    if ( !this->m_db->Get( this->m_url, value ) )
     {
         this->m_chunks_num = 0;
     }

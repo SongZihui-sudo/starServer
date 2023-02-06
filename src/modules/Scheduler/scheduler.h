@@ -65,7 +65,7 @@ public:
 
 public:
     typedef std::shared_ptr< Scheduler > ptr;
-    Scheduler( size_t max_threads = 5, size_t max_fibers = 5 );
+    Scheduler( size_t max_threads = 50, int64_t thread_free_time = 120 );
     ~Scheduler() = default;
 
 private:
@@ -100,11 +100,10 @@ public:
     static void check_free_thread();
 
 protected:
-    size_t max_fibers;                       /* 最大协程数 */
-    size_t max_threads;                      /* 最大线程数 */
-    std::deque< Scheduler::task > m_tasks;   /* 任务池 */
+    size_t max_threads;                             /* 最大线程数 */
+    std::deque< Scheduler::task > m_tasks;          /* 任务池 */
     static std::vector< Threading::ptr > m_threads; /* 线程池 */
-    static int16_t thread_free_time;
+    static int64_t thread_free_time;
 };
 
 static thread_local std::deque< Scheduler::task > arr;

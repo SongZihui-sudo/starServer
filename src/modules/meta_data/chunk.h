@@ -19,6 +19,7 @@ public:
     typedef std::shared_ptr< chunk > ptr;
     chunk( std::string file_url, size_t index );
     chunk( std::string name, std::string path, size_t index );
+    chunk(std::string chunk_url);
     ~chunk() = default;
 
 public:

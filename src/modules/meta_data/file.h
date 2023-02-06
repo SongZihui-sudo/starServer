@@ -106,9 +106,11 @@ public:
     /* 生成文件资源的 key 值 */
     static std::string join( std::string file_name, std::string file_path )
     {
-        return file_name + "::" + file_path;
+        std::string url =  levelDB::joinkey({file_name, file_path});
+        url.pop_back();
+        return url;
     }
-
+    
     /* 设置 chunks 的大小 */
     void set_chunks_num( size_t chunks_num ) { this->m_chunks_num = chunks_num; }
 

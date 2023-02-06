@@ -4,6 +4,7 @@
 
 #include <aco.h>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -13,14 +14,14 @@ namespace star
 std::vector< void* > Schedule_args = {};
 pthread_mutex_t mutex;
 int Schedule_answer                                = -1;
-int16_t Scheduler::thread_free_time                = 0;
+int64_t Scheduler::thread_free_time                = 0;
 std::vector< Threading::ptr > Scheduler::m_threads = {}; /* 线程池 */
 static Logger::ptr g_logger( STAR_NAME( "scheduler_logger" ) );
 
-Scheduler::Scheduler( size_t max_threads, size_t max_fibers )
+Scheduler::Scheduler( size_t max_threads, int64_t thread_free_time)
 {
     this->max_threads = max_threads;
-    this->max_fibers  = max_fibers;
+    this->thread_free_time = thread_free_time;
 }
 
 void Scheduler::Regist_task( std::function< void() > t_func, std::string t_name )
@@ -186,6 +187,13 @@ void Scheduler::manage()
 void Scheduler::check_free_thread()
 {
     INFO_STD_STREAM_LOG( g_logger ) << "Begin check the free thread in pool" << Logger::endl();
+    if ( Scheduler::m_threads.empty() )
+    {
+        INFO_STD_STREAM_LOG( g_logger ) << "NO Thread in the Pool" << Logger::endl();
+        sleep( Scheduler::thread_free_time );
+        INFO_STD_STREAM_LOG( g_logger ) << "End check the free thread in pool" << Logger::endl();
+        check_free_thread();
+    }
     /* 查看空闲的进程, 空闲时间过长的话，杀死这个进程*/
     int64_t current_time = getTime();
     int i                = 0;

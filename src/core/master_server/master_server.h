@@ -33,9 +33,9 @@ public:
      */
     struct chunk_server_info
     {
-        std::string addr;               /* ip 地址 */
-        std::int64_t port;              /* 端口 */
-        bool is_need_sync = false;              /* 是否需要同步 */
+        std::string addr;          /* ip 地址 */
+        std::int64_t port;         /* 端口 */
+        bool is_need_sync = false; /* 是否需要同步 */
 
         /* 生成一个关于 chunk server 地址的键值 */
         std::string join() { return this->addr + ":" + S( this->port ); }
@@ -72,17 +72,17 @@ public:
     static void chunk_server_connect_fail( std::string chunk_server_url );
 
     /* 查找指定文件的元数据信息 */
-    virtual bool find_file_meta_data( std::vector< std::string >& res, std::string f_name, std::string f_path );
+    virtual bool find_file_meta_data( std::vector< std::string >& res, std::string file_url );
 
     /* 使用副本替换失联 chunk server 上的 chunk */
-    void replace_unconnect_chunk();
+    static void replace_unconnect_chunk( chunk_server_info unconnect_server );
 
-    /* 与 chunk server 连接上后，如果被标记为需要同步, 
+    /* 与 chunk server 连接上后，如果被标记为需要同步,
     则通过副本同步 chunk */
     static void sync_chunk( chunk_server_info cur_server );
 
     /* 使用一个块去同步另一个块, 应用于副本之间 */
-    static bool sync_chunk(chunk::ptr from, chunk::ptr dist);
+    static bool sync_chunk( chunk::ptr from, chunk::ptr dist );
 
 public:
     /* 用户登录认证 */
@@ -96,17 +96,23 @@ public:
 
 protected:
     /* 响应函数 */
-    static void deal_with_101( std::vector< void* > args ); /* 客户端请求指定文件的元数据 */
+    static void deal_with_101( std::vector< void* > args ); /* 客户端请求指定文件的元数据 ok */
 
     static void deal_with_104( std::vector< void* > args ); /* 客户端上传文件 */
 
+    static void deal_with_134( std::vector< void* > args ); /* 文件重命名 */
+
+    static void deal_with_135( std::vector< void* > args ); /* 删除文件的元数据 */
+
     static void deal_with_117( std::vector< void* > args ); /* 修改文件路径 */
 
-    static void deal_with_118( std::vector< void* > args ); /* 用户认证 */
+    static void deal_with_118( std::vector< void* > args ); /* 用户认证 ok */
 
-    static void deal_with_119( std::vector< void* > args ); /* 注册用户认证信息 */
+    static void deal_with_119( std::vector< void* > args ); /* 注册用户认证信息 ok */
 
     static void deal_with_126( std::vector< void* > args ); /* 客户端请求已经上传的文件元数据 包含 文件名，路径 */
+
+    static chunk_server_info random_choice_server(); /* 随机选一个chunk server */
 
     /* 消息映射函数表 */
     std::map< int32_t, std::function< void( std::vector< void* > ) > > message_funcs
@@ -135,7 +141,7 @@ protected:
 private:
     static size_t max_chunk_size; /* chunk 的最大大小  */
     bool is_login = false;
-    static size_t copys;                    /* 副本个数 */
+    static size_t copys;                   /* 副本个数 */
     static levelDBList::ptr file_url_list; /* 文件名列表 */
 };
 }

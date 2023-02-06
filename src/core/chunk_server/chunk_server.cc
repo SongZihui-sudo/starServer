@@ -7,6 +7,7 @@
 #include <bits/types/FILE.h>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <star.h>
 #include <string>
 #include <unistd.h>
@@ -22,8 +23,9 @@ void* c_args;
 chunk_server::chunk_server( std::filesystem::path settins_path )
 : tcpserver( settins_path )
 {
-    m_master.addr = this->m_settings->get( "master_server" )["address"].asString();
-    m_master.port = this->m_settings->get( "master_server" )["port"].asInt();
+    this->m_master.addr  = this->m_settings->get( "master_server" )["address"].asString();
+    this->m_master.port  = this->m_settings->get( "master_server" )["port"].asInt();
+    this->max_chunk_size = this->m_settings->get( "chunk_size" ).asInt64();
     print_logo();
     this->m_db->open();
 }
@@ -87,9 +89,28 @@ void chunk_server::deal_with_108( std::vector< void* > args )
     remote_sock.reset( ( MSocket* )args[3] );
     std::string flag = "true";
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
-    bool bit = cur_file->append( cur.data );             /* 写文件, 追加 */
-    cur_file->close();                                   /* 关闭文件 */
+    size_t index = std::stoi( cur.customize[0] );
+    std::string buffer;
+    bool bit;
+    /* 读，判断这个块是否存在 */
+    cur_file->open( file_operation::read, self->m_db ); /* 打开文件 */
+    cur_file->read( buffer, index );
+    cur_file->close(); /* 关闭文件 */
+    /* 存在 */
+    if ( !buffer.empty() )
+    {
+        buffer += cur.data;
+        cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
+        cur_file->write( buffer, index );
+        cur_file->close();
+    }
+    else
+    {
+        /* 不存在 */
+        cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
+        bit = cur_file->append( cur.data );                  /* 写文件, 追加 */
+        cur_file->close();                                   /* 关闭文件 */
+    }
 
     if ( !bit )
     {
@@ -186,10 +207,31 @@ void chunk_server::deal_with_110( std::vector< void* > args )
     cur_file->close();
     BREAK( g_logger );
 
-    /* 回复消息 */
-    cur.reset( 115, "", cur_file->get_name(), cur_file->get_path(), data.size(), data, { S( index ) } );
+    size_t beg_index = 0;
+    size_t end_index = 0;
+    size_t send_num  = 0;
+    while ( end_index < self->max_chunk_size )
+    {
+        size_t beg_index      = send_num * self->max_chunk_size;
+        size_t end_index      = ( send_num + 1 ) * self->max_chunk_size;
+        std::string temp_data = data.substr( beg_index, end_index );
+        DEBUG_STD_STREAM_LOG(g_logger) << "temp data: " << temp_data << Logger::endl();
+        /* 回复消息 */
+        cur.reset( 115, self->m_sock->getLocalAddress()->toString(), cur_file->get_name(), cur_file->get_path(), temp_data.size(), temp_data, { S( index ) } );
+        //BREAK( g_logger );
+        tcpserver::send( remote_sock, cur );
+        /* 休眠一下 */
+        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
+    }
+    data = "chunk end";
+    cur.reset( 115, self->m_sock->getLocalAddress()->toString(), cur_file->get_name(), cur_file->get_path(), data.size(), data, { S( index ) } );
     BREAK( g_logger );
     tcpserver::send( remote_sock, cur );
 }
+
+/*
+    块重命名
+*/
+void chunk_server::deal_with_137( std::vector< void* > args ) {}
 
 }

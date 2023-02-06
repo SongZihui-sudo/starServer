@@ -7,6 +7,18 @@
 
 namespace star
 {
+chunk::chunk( std::string chunk_url )
+{
+    this->m_url = chunk_url;
+    this->m_lock.reset( new io_lock() );
+    size_t sub_str_end1 = chunk_url.find( '|' );
+    this->m_name        = chunk_url.substr( 0, sub_str_end1 );
+    size_t sub_str_end2 = chunk_url.find( '|', sub_str_end1 + 1 );
+    this->m_path        = chunk_url.substr( sub_str_end1 + 1, sub_str_end2 - 1 );
+    size_t sub_str_end3 = chunk_url.find( '|', sub_str_end2 + 1 );
+    this->index = std::stoi( chunk_url.substr( sub_str_end2 + 1, sub_str_end3 - 1 ) );
+}
+
 chunk::chunk( std::string file_url, size_t index )
 {
     this->m_url = levelDB::joinkey( { file_url, S( index ) } );
@@ -16,7 +28,6 @@ chunk::chunk( std::string file_url, size_t index )
     this->m_name        = file_url.substr( 0, sub_str_end1 );
     size_t sub_str_end2 = file_url.find( '|', sub_str_end1 + 1 );
     this->m_path        = file_url.substr( sub_str_end1 + 1, sub_str_end2 - 1 );
-    this->m_path.pop_back();
 }
 
 chunk::chunk( std::string name, std::string path, size_t index )
@@ -25,6 +36,7 @@ chunk::chunk( std::string name, std::string path, size_t index )
     this->m_path         = path;
     std::string file_url = this->join( name, path );
     this->m_url          = levelDB::joinkey( { file_url, S( index ) } );
+    this->m_url.pop_back();
     this->index          = index;
     this->m_lock.reset( new io_lock() );
 }

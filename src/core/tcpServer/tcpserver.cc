@@ -3,6 +3,7 @@
 
 #include <csignal>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -43,14 +44,13 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
 
     int max_services = this->m_settings->get( "max_services" ).asInt();
     this->m_service_manager.reset( new service_manager( max_services ) );
+    
+    int64_t thread_free_time = this->m_settings->get("thread_free_time").asInt64();
+    server_scheduler.reset( new Scheduler( this->max_connects, thread_free_time ) );
 }
 
 void tcpserver::wait( void respond(), void* self )
 {
-    /* 运行调度器 */
-    server_scheduler.reset( new Scheduler( this->max_connects, this->max_connects ) );
-    this->m_service_manager->register_service( "free_thread_checker",
-                                               std::function< void() >( Scheduler::check_free_thread ) );
     /* 监听 socket 连接 */
     this->m_status = Normal;
 
