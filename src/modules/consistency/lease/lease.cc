@@ -1,6 +1,7 @@
 #include "lease.h"
 #include "modules/Scheduler/mods/timer/timer.h"
 #include "modules/log/log.h"
+#include "modules/thread/thread.h"
 #include <asm-generic/errno.h>
 #include <cstdint>
 
@@ -9,7 +10,7 @@ namespace star
 
 static Logger::ptr g_logger( STAR_NAME( "lease_logger" ) );
 static std::string lease_id = "";
-bool* lease_flag;
+bool lease::available       = true;
 
 lease::lease( int32_t lease_times )
 {
@@ -19,7 +20,6 @@ lease::lease( int32_t lease_times )
     /* 启动一个定时器 */
     this->m_timer->run();
     this->available = true;
-    lease_flag      = &this->available;
 }
 
 void lease::renew()
@@ -42,7 +42,7 @@ void lease::renew()
 void lease::lease_invalid()
 {
     DEBUG_STD_STREAM_LOG( g_logger ) << "Lease is late!" << Logger::endl();
-    *lease_flag = false;
+    lease::available = false;
 }
 
 void lease_manager::new_lease()
@@ -98,7 +98,7 @@ void lease_manager::destory_invalid_lease()
     }
     for ( auto item : this->lease_tab )
     {
-        if ( !item.second->is_available() )
+        if ( !item.second->is_available() && item.second->get_status() == Threading::Thread_Status::FREE )
         {
             this->destory_lease( item.first );
         }

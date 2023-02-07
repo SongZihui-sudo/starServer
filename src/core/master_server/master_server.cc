@@ -990,9 +990,10 @@ void master_server::deal_with_126( std::vector< void* > args )
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
 
-    self->m_lease_control->destory_invalid_lease();
+    //self->m_lease_control->destory_invalid_lease();
     self->m_lease_control->new_lease(); /* 颁发一个新租约 */
 
+    BREAK(g_logger);
     cur.reset(
     127, self->m_sock->getLocalAddress()->toString(), "All file Meta data", "", 0, "None", {} );
 

@@ -98,7 +98,7 @@ protected:
     /* 响应函数 */
     static void deal_with_101( std::vector< void* > args ); /* 客户端请求指定文件的元数据 ok */
 
-    static void deal_with_104( std::vector< void* > args ); /* 客户端上传文件 */
+    static void deal_with_104( std::vector< void* > args ); /* 客户端上传文件 ok */
 
     static void deal_with_134( std::vector< void* > args ); /* 文件重命名 */
 
@@ -110,7 +110,7 @@ protected:
 
     static void deal_with_119( std::vector< void* > args ); /* 注册用户认证信息 ok */
 
-    static void deal_with_126( std::vector< void* > args ); /* 客户端请求已经上传的文件元数据 包含 文件名，路径 */
+    static void deal_with_126( std::vector< void* > args ); /* 客户端请求已经上传的文件元数据 包含 文件名，路径 ok */
 
     static chunk_server_info random_choice_server(); /* 随机选一个chunk server */
 

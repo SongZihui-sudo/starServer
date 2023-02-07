@@ -3,6 +3,7 @@
 
 #include "aco.h"
 #include "modules/Scheduler/mods/timer/timer.h"
+#include "modules/thread/thread.h"
 
 #include <cstdint>
 #include <inttypes.h>
@@ -20,20 +21,33 @@ public:
     ~lease() = default;
 
 public:
-    /* 续约 */
+    /*
+        续约
+    */
     void renew();
 
-    /* 租约是否有效 */
+    /*
+        租约是否有效
+    */
     bool is_available() { return available; }
 
-    /* 租约失效的回调函数 */
+    /*
+        租约失效的回调函数
+    */
     static void lease_invalid();
 
-    /* 获取id */
+    /*
+        获取id
+    */
     std::string get_id() { return this->m_id; }
 
+    /*
+        获取定时器线程状态
+     */
+    Threading::Thread_Status get_status() { return m_timer->get_status(); }
+
 private:
-    bool available     = false;
+    static bool available;
     std::string m_id   = "";
     int32_t m_secends  = 0;       /* 租约时长 */
     Timer::ptr m_timer = nullptr; /* 定时器 */
@@ -47,7 +61,10 @@ class lease_manager
 public:
     typedef std::shared_ptr< lease_manager > ptr;
 
-    lease_manager( int32_t default_lease_time ){};
+    lease_manager( int32_t default_lease_time )
+    {
+        this->default_lease_time = default_lease_time;
+    };
     ~lease_manager() = default;
 
 public:

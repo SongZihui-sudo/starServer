@@ -12,24 +12,22 @@ namespace star
 {
 
 /* 定时器的运行线程 */
-static Threading::ptr Timer_thread;
-static thread_local int64_t start_time;
-static int32_t secends;
+thread_local int64_t Timer::start_time = 0;
 static Logger::ptr g_logger( STAR_NAME( "TIMER_LOGGER" ) );
 static int32_t timer_counter = 1;
-static std::function< void() > callback_func;
+int32_t Timer::m_secends = 0;
+std::function< void() > Timer::callback_func = nullptr;
 
 Timer::Timer( std::function< void() > cb, int32_t senc )
 {
     this->m_secends = senc; /* 定时时间 */
-    secends         = senc;
-    callback_func   = cb;
+    this->callback_func   = cb;
 }
 
 void Timer::run()
 {
     /* 新建一个线程来运行定时器 */
-    Timer_thread.reset( new Threading( std::function< void() >( this->start ),
+    this->Timer_thread.reset( new Threading( std::function< void() >( this->start ),
                                        "Timer_thread" + S( timer_counter ) ) );
     timer_counter++;
 }
@@ -37,7 +35,7 @@ void Timer::run()
 void Timer::start()
 {
     /* 获取开始时间 */
-    start_time = getTime();
+    Timer::start_time = getTime();
     INFO_STD_STREAM_LOG( g_logger ) << "%D"
                                     << "Timer Start!"
                                     << Logger::endl();
@@ -48,13 +46,14 @@ void Timer::start()
         // DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
         //                                  << Logger::endl();
         /* 到达时间 */
-        if ( current_time - start_time == secends )
+        int64_t last_time = current_time - start_time;
+        if ( last_time > Timer::m_secends )
         {
             INFO_STD_STREAM_LOG( g_logger ) << "%D"
-                                            << "Timer End! Call call-back function!"
+                                            << "Timer End! Call call-back function!" << S(last_time) << "|" << S(Timer::m_secends)
                                             << Logger::endl();
             /* 执行回调函数 */
-            callback_func();
+            Timer::callback_func();
             break; /* 退出循环 */
         }
     }

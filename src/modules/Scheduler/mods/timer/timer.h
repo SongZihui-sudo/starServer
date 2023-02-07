@@ -50,9 +50,17 @@ public:
     */
     int64_t get_stop_time() { return this->m_stop_time; }
 
+    /*
+        获取状态
+     */
+    Threading::Thread_Status get_status() { return this->Timer_thread->get_status(); }
+
 private:
-    int32_t m_secends;   /* 定时时间 */
-    int64_t m_stop_time; /* 停止时间 */
+    static thread_local int64_t start_time;
+    Threading::ptr Timer_thread;
+    static int32_t m_secends; /* 定时时间 */
+    int64_t m_stop_time;      /* 停止时间 */
+    static std::function< void() > callback_func;
 };
 }
 
