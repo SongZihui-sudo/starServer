@@ -9,6 +9,7 @@
 #include "modules/common/common.h"
 
 #include <cstdarg>
+#include <cstdint>
 #include <string>
 
 namespace star
@@ -140,11 +141,8 @@ void FileLogAppender::log( LogLevel::level in_level, LogEvent::ptr in_event )
     }
 }
 
-void LogFormatter::format( const char* pattern, std::initializer_list< std::string > arg )
+void LogFormatter::format( const char* pattern, va_list args )
 {
-    /* 可变参数列表 */
-    std::vector< std::string > arg_list = arg;
-
     bool flag_parse = false;
     bool flag_case  = false;
 
@@ -186,52 +184,54 @@ void LogFormatter::format( const char* pattern, std::initializer_list< std::stri
                     %m : 日志内容                                                      \
                     %n : 换行符[\r\n]                                                   \
                     %D : 时间                                                            \
+                    %d : 数字
+                    %s : 字符串
+                    %o : 浮点数
                 */
                 case 'T':
                     TabItem::format( current, m_event );
                     pattern++;
                     break;
                 case 't':
-                    u32_temp = std::stoul( arg_list[index] );
+                    u32_temp = va_arg( args, long );
                     m_event->set_threadId( u32_temp );
                     ThreadIdItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'N':
-                    m_event->set_threadName( arg_list[index] );
+                    m_event->set_threadName( va_arg( args, char* ) );
                     ThreadNameItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'F':
-                    u32_temp = std::stoul( arg_list[index] );
+                    u32_temp = va_arg( args, long );
                     m_event->set_fiberId( u32_temp );
                     FiberIdItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'p':
-                    level_temp = LogLevel::toLevel( arg_list[index] );
+                    level_temp = LogLevel::toLevel( va_arg( args, char* ) );
                     m_event->set_level( level_temp );
                     LevelItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'c':
-                    m_event->set_logName( arg_list[index] );
+                    m_event->set_logName( va_arg( args, char* ) );
                     LogNameItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'f':
-                    m_event->set_file( arg_list[index] );
+                    m_event->set_file( va_arg( args, char* ) );
                     FileItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'l':
-                    u32_temp = std::stoul( arg_list[index] );
-                    m_event->set_lineNum( u32_temp );
+                    m_event->set_lineNum( va_arg( args, int ) );
                     LineItem::format( current, m_event );
                     pattern++;
                     break;
                 case 'm':
-                    m_event->set_detail( arg_list[index] );
+                    m_event->set_detail( va_arg( args, char* ) );
                     MessageItem::format( current, m_event );
                     pattern++;
                     break;
@@ -240,10 +240,19 @@ void LogFormatter::format( const char* pattern, std::initializer_list< std::stri
                     pattern++;
                     break;
                 case 'D':
-                    u64_temp = std::stoull( arg_list[index] );
+                    u64_temp = va_arg( args, long long );
                     m_event->set_time( u64_temp );
                     TimeItem::format( current, m_event );
                     pattern++;
+                    break;
+                case 'd':
+                    current << S( va_arg( args, int ) );
+                    break;
+                case 's':
+                    current << va_arg( args, char* );
+                    break;
+                case 'o':
+                    current << S(va_arg( args, double ));
                     break;
                 case '0':
                     EndItem::format( current, m_event );
@@ -258,7 +267,7 @@ void LogFormatter::format( const char* pattern, std::initializer_list< std::stri
                     pattern++;
                 }
             }
-            log_fotmated_Str << " " << current.str();
+            log_fotmated_Str << current.str();
             current.clear();
             index++;
         }
@@ -327,7 +336,7 @@ void TimeItem::format( std::ostringstream& in, LogEvent::ptr in_event )
     }
     else
     {
-        in << std::to_string(getTime()) << " <----> ";
+        in << std::to_string( getTime() ) << " <----> ";
     }
 }
 
@@ -350,20 +359,6 @@ void FileLogAppender::reopen()
     }
     in.close();
     in.open( this->file_name );
-}
-
-void LogManager::tofile()
-{
-    std::ofstream in;
-    FileLogAppender::generate_log_file( in );
-
-    for ( auto it : this->m_loggerList )
-    {
-        for ( auto obj : it.second->log_list )
-        {
-            in << obj << "\n";
-        }
-    }
 }
 
 }

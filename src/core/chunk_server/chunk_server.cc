@@ -1,13 +1,11 @@
 #include "./chunk_server.h"
 #include "core/tcpServer/tcpserver.h"
-#include "modules/log/log.h"
-#include "modules/meta_data/meta_data.h"
-#include "modules/socket/socket.h"
 
 #include <bits/types/FILE.h>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <sstream>
 #include <star.h>
 #include <string>
 #include <unistd.h>
@@ -37,7 +35,17 @@ void chunk_server::respond()
         /* 获取this指针 */
         chunk_server* self = ( chunk_server* )arg_ss.top();
 
+        if ( !self )
+        {
+            return;
+        }
+
         MSocket::ptr remote_sock = sock_ss.top();
+
+        if ( !remote_sock->isConnected() )
+        {
+            return;
+        }
 
         if ( !remote_sock )
         {
@@ -91,7 +99,7 @@ void chunk_server::deal_with_108( std::vector< void* > args )
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
     size_t index = std::stoi( cur.customize[0] );
     std::string buffer;
-    bool bit;
+    bool bit = true;
     /* 读，判断这个块是否存在 */
     cur_file->open( file_operation::read, self->m_db ); /* 打开文件 */
     cur_file->read( buffer, index );
@@ -99,9 +107,9 @@ void chunk_server::deal_with_108( std::vector< void* > args )
     /* 存在 */
     if ( !buffer.empty() )
     {
-        buffer += cur.data;
+        buffer += '|' + cur.data; /* chunk 内的每个package以‘|’隔开 */
         cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
-        cur_file->write( buffer, index );
+        bit = cur_file->write( buffer, index );
         cur_file->close();
     }
     else
@@ -199,32 +207,85 @@ void chunk_server::deal_with_110( std::vector< void* > args )
         return;
     }
 
-    BREAK( g_logger );
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
-    int index = std::stoi( cur.customize[0] );
+
+    if ( cur.customize.size() < 2 )
+    {
+        cur.reset( 115,
+                   self->m_sock->getLocalAddress()->toString(),
+                   cur_file->get_name(),
+                   cur_file->get_path(),
+                   data.size(),
+                   "error!",
+                   { S( 0 ) } );
+        tcpserver::send( remote_sock, cur );
+        return;
+    }
+
+    size_t index               = std::stoi( cur.customize[0] );
+    size_t start_package_index = std::stoi( cur.customize[1] );
+
     cur_file->open( file_operation::read, self->m_db );
     bool read_flag = cur_file->read( data, index );
     cur_file->close();
-    BREAK( g_logger );
 
-    size_t beg_index = 0;
-    size_t end_index = 0;
-    size_t send_num  = 0;
-    while ( end_index < self->max_chunk_size )
+    std::stringstream datas( data );
+    data.clear();
+
+    /* 跳到客户端请求的package开始位置 */
+    while ( start_package_index )
     {
-        size_t beg_index      = send_num * self->max_chunk_size;
-        size_t end_index      = ( send_num + 1 ) * self->max_chunk_size;
-        std::string temp_data = data.substr( beg_index, end_index );
-        DEBUG_STD_STREAM_LOG(g_logger) << "temp data: " << temp_data << Logger::endl();
+        std::string temp_data;
+        std::getline( datas, temp_data, '|' );
+        start_package_index--;
+    }
+
+    /* 把一个chunk划分为若干个package,发给客户端 */
+    std::string temp_data;
+    while ( std::getline( datas, temp_data, '|' ) )
+    {
+        DEBUG_STD_STREAM_LOG( g_logger ) << "Package Data: " << temp_data << Logger::endl();
+        if ( temp_data.size() > self->m_package_size )
+        {
+            temp_data.resize( self->m_package_size );
+        }
+
         /* 回复消息 */
-        cur.reset( 115, self->m_sock->getLocalAddress()->toString(), cur_file->get_name(), cur_file->get_path(), temp_data.size(), temp_data, { S( index ) } );
-        //BREAK( g_logger );
+        cur.reset( 115,
+                   self->m_sock->getLocalAddress()->toString(),
+                   cur_file->get_name(),
+                   cur_file->get_path(),
+                   temp_data.size(),
+                   temp_data,
+                   { S( index ) } );
+        // BREAK( g_logger );
         tcpserver::send( remote_sock, cur );
-        /* 休眠一下 */
-        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
+        protocol::ptr cur_ptotocol = tcpserver::recv( remote_sock, self->buffer_size );
+        if ( !cur_ptotocol )
+        {
+            FATAL_STD_STREAM_LOG( g_logger ) << "Get Message Error!" << Logger::endl();
+            break;
+        }
+        cur = cur_ptotocol->get_protocol_struct();
+        if ( cur.bit == 141 && cur.data == "recv data ok" )
+        {
+            INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                            << "Client Recv Data OK!" << Logger::endl();
+        }
+        else
+        {
+            FATAL_STD_STREAM_LOG( g_logger ) << "Client Recv Data Error!" << Logger::endl();
+            break;
+        }
     }
     data = "chunk end";
-    cur.reset( 115, self->m_sock->getLocalAddress()->toString(), cur_file->get_name(), cur_file->get_path(), data.size(), data, { S( index ) } );
+    cur.reset( 115,
+               self->m_sock->getLocalAddress()->toString(),
+               cur_file->get_name(),
+               cur_file->get_path(),
+               data.size(),
+               data,
+               { S( index ) } );
     BREAK( g_logger );
     tcpserver::send( remote_sock, cur );
 }

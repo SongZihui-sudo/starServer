@@ -66,7 +66,7 @@ bool file::write( std::string buffer, size_t index )
     bool ret_flag;
     chunk::ptr cur_chunk( new chunk( this->m_url, index ) );
     cur_chunk->open( this->m_operation_flag, this->m_db );
-    cur_chunk->write( buffer );
+    ret_flag = cur_chunk->write( buffer );
     cur_chunk->close();
     this->current_operation_time = getTime();
 

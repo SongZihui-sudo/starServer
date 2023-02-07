@@ -5,7 +5,9 @@
 #include <aco.h>
 #include <cstdint>
 #include <functional>
+#include <pthread.h>
 #include <string>
+#include <sys/types.h>
 #include <unistd.h>
 #include <vector>
 
@@ -18,9 +20,9 @@ int64_t Scheduler::thread_free_time                = 0;
 std::vector< Threading::ptr > Scheduler::m_threads = {}; /* 线程池 */
 static Logger::ptr g_logger( STAR_NAME( "scheduler_logger" ) );
 
-Scheduler::Scheduler( size_t max_threads, int64_t thread_free_time)
+Scheduler::Scheduler( size_t max_threads, int64_t thread_free_time )
 {
-    this->max_threads = max_threads;
+    this->max_threads      = max_threads;
     this->thread_free_time = thread_free_time;
 }
 
@@ -179,7 +181,7 @@ void Scheduler::manage()
     /* 调度还没运行的任务 */
     while ( !this->m_tasks.empty() )
     {
-        this->assign_task( *this->m_tasks.begin() );
+        this->assign_task( this->m_tasks.front() );
         this->m_tasks.pop_front();
     }
 }
@@ -204,7 +206,16 @@ void Scheduler::check_free_thread()
             int64_t free_time = current_time - item->get_task_end_time();
             if ( free_time > Scheduler::thread_free_time )
             {
+                pid_t thread_id         = item->get_id();
+                std::string thread_name = item->get_name();
                 Scheduler::m_threads.erase( Scheduler::m_threads.begin() + i );
+                PRINT_LOG( g_logger,
+                           "%p Thread: %N id: %t thread free time: %d Remove "
+                           "Succesfully!%n",
+                           "DEBUG",
+                           thread_name.c_str(),
+                           thread_id,
+                           free_time );
             }
         }
         i++;

@@ -31,8 +31,3 @@ do
     gnome-terminal -t chunk_server${i} --working-directory=$script_dir/chunk_server${i} -- bash -c "$script_dir/chunk_server1/Chunk_Server ; bash"
 done
     gnome-terminal -t master_server --working-directory=$script_dir/master_server -- bash -c "$script_dir/master_server/master_server ; bash"
-
-# error
-else
-    echo This system is not support!
-fi

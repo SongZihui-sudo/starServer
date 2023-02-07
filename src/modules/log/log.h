@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stdarg.h>
 #include <string>
 #include <vector>
 
@@ -44,8 +45,7 @@ class LogManager;
 #define STAR_ASSERT( x, loggerName )                                                       \
     if ( STAR_UNLIKELY( !( x ) ) )                                                         \
     {                                                                                      \
-        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n"                     \
-                                           << Logger::endl();                                      \
+        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n" << Logger::endl();  \
         assert( x );                                                                       \
     }
 
@@ -53,7 +53,8 @@ class LogManager;
 #define STAR_ASSERT2( x, w, loggerName )                                                   \
     if ( STAR_UNLIKELY( !( x ) ) )                                                         \
     {                                                                                      \
-        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n" << w << Logger::endl();     \
+        ERROR_STD_STREAM_LOG( loggerName ) << "ASSERTION: " #x << "\n"                     \
+                                           << w << Logger::endl();                         \
         assert( x );                                                                       \
     }
 
@@ -119,11 +120,20 @@ class LogManager;
     LoggerName->set_level( star::LogLevel::level::FATAL );                                 \
     *( LoggerName ) << "<< FATAL >> "
 
-#define BREAK(LoggerName)  \
-    DEBUG_STD_STREAM_LOG(LoggerName) << "<< DEBUG-BREAK-POINT >>" << __FILE__ << " " << S(__LINE__) <<  Logger::endl();
+#define BREAK( LoggerName )                                                                \
+    DEBUG_STD_STREAM_LOG( LoggerName )                                                     \
+    << "<< DEBUG-BREAK-POINT >>" << __FILE__ << " " << S( __LINE__ ) << Logger::endl();
 
-/* 把所有日志写入文件 */
-#define ALL_LOG_TO_FILE( managerName ) managerName.tofile();
+/* -------------------------------------------------- 格式化输出宏 ----------------------------------- */
+
+#define PRINT_LOG( LoggerName, opt, ... )                                                    \
+    LoggerName->set_appender( star::Logger::Appender::STD, star::LogLevel::level::DOTKNOW ); \
+    LoggerName->format( opt, __VA_ARGS__ );
+
+/* -------------------------------------------------- 格式化输出带文件 ----------------------------------- */
+#define FPRINT_LOG( LoggerName, opt, ... )                                                 \
+    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::DOTKNOW );  \
+    Logger->format( opt, __VA_ARGS__ );
 
 /*
     日志级别
@@ -294,7 +304,7 @@ public:
         %D : 时间
         %0 : 结尾
     */
-    void format( const char* pattern, std::initializer_list< std::string > arg ); /* 类似与 printf */
+    void format( const char* pattern, va_list args ); /* 类似与 printf */
 
     /*
         返回格式
@@ -650,6 +660,7 @@ public:
             else
             {
                 temp++;
+                LogEvent::ptr event_temp( new LogEvent() );
                 switch ( *temp )
                 {
                     case 'D':
@@ -657,18 +668,23 @@ public:
                         temp++;
                         break;
                     case 'n':
-                        this->m_formatter->get_formatted()->get_formatted() << "\n";
+                        NewLineItem::format( m_formatter->get_formatted()->get_formatted(), nullptr );
                         temp++;
                         break;
                     case 'b':
-                        this->m_formatter->get_formatted()->get_formatted() << "\t";
+                        TabItem::format( m_formatter->get_formatted()->get_formatted(), nullptr );
                         temp++;
+                        break;
+                    case 'l':
+                        event_temp->set_lineNum( __LINE__ );
+                        LineItem::format( m_formatter->get_formatted()->get_formatted(), event_temp );
+                        break;
+                    case 'f':
+                        event_temp->set_file( __FILE__ );
+                        LineItem::format( m_formatter->get_formatted()->get_formatted(), event_temp );
                         break;
                     case '0':
                         this->log( m_level, this->m_formatter->get_formatted() );
-                        std::string temp1
-                        = this->m_formatter->get_formatted()->get_formatted().str();
-                        log_list.push_back( temp1 );
                         this->m_formatter->get_formatted()->get_formatted().clear();
                         this->m_formatter->get_formatted()->get_formatted().str( "" ); /* 清空字符串缓冲区 */
                         temp++;
@@ -683,18 +699,19 @@ public:
     /*
         格式化形式把日志写入 logger
     */
-    void format( const char* pattern, std::initializer_list< std::string > args )
+    void format( const char* pattern, ... )
     {
-        this->m_formatter->get_formatted()->get_formatted().clear();
-        this->m_formatter->get_formatted()->get_formatted().str( "" ); /* 清空字符串缓冲区 */
+        va_list args;
+        va_start( args, pattern );
         this->m_formatter->format( pattern, args );
         this->log( this->m_formatter->get_formatted()->getLevel(), this->m_formatter->get_formatted() );
-        std::string temp = this->m_formatter->get_formatted()->get_formatted().str();
-        log_list.push_back( temp );
+        va_end( args );
+        this->m_formatter->get_formatted()->get_formatted().clear();
+        this->m_formatter->get_formatted()->get_formatted().str( "" ); /* 清空字符串缓冲区 */
     };
 
 private:
-    std::vector< std::string > log_list; /* 日志输出位置列表 */
+    std::vector< std::string > log_list; /* 日志列表 */
     LogAppender::ptr root;               /* 默认 appender */
     LogLevel::level m_level;             /* 日志输出级别 */
     std::string m_name;                  /* 日志器名称 */

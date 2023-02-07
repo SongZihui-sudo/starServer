@@ -8,23 +8,15 @@ int main()
     star::Logger::ptr Logger( new star::Logger );
     manager.add_logger( Logger );
 
-    DEBUG_STD_STREAM_LOG( Logger ) << "<< DEBUG >>"
-                                            << " "
-                                            << "Hello World%n"
-                                            << "%0";
+    DEBUG_STD_STREAM_LOG( Logger ) << " "
+                                   << "Hello World" << star::Logger::endl();
 
-    Logger->set_appender( star::Logger::Appender::STD, star::LogLevel::level::DOTKNOW );
-    Logger->format( "%p %f %l %m %n", { "ERROR", "log.cc", "11", "RUN ERROR!" } );
+    PRINT_LOG( Logger, "%p %f %l %m %n", "ERROR", __FILE__, __LINE__, "RUN ERROR!" );
 
-    DEBUG_FILE_STREAM_LOG( Logger ) << "<< DEBUG >>"
-                                             << " "
-                                             << "Hello World"
-                                             << "%0";
+    DEBUG_FILE_STREAM_LOG( Logger ) << " "
+                                    << "Hello World" << star::Logger::endl();
 
-    Logger->set_appender( star::Logger::Appender::FILE, star::LogLevel::level::DOTKNOW );
-    Logger->format( "%p %f %l %m %n", { "ERROR", "log.cc", "11", "RUN ERROR!" } );
+    FPRINT_LOG( Logger, "%p %f %l %m %n", "ERROR", __FILE__, __LINE__, "RUN ERROR!" );
 
-    ALL_LOG_TO_FILE(manager);
-    
     return 0;
 }

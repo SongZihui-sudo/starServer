@@ -15,9 +15,9 @@ namespace star
 std::stack< void* > arg_ss;
 std::stack< MSocket::ptr > sock_ss;
 static Logger::ptr g_logger( STAR_NAME( "global_logger" ) );
-
-levelDB::ptr tcpserver::m_db  = nullptr;
-size_t tcpserver::buffer_size = 0;
+size_t tcpserver::m_package_size = 0;
+levelDB::ptr tcpserver::m_db     = nullptr;
+size_t tcpserver::buffer_size    = 0;
 
 tcpserver::tcpserver( std::filesystem::path settings_path )
 {
@@ -44,9 +44,10 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
 
     int max_services = this->m_settings->get( "max_services" ).asInt();
     this->m_service_manager.reset( new service_manager( max_services ) );
-    
-    int64_t thread_free_time = this->m_settings->get("thread_free_time").asInt64();
+
+    int64_t thread_free_time = this->m_settings->get( "thread_free_time" ).asInt64();
     server_scheduler.reset( new Scheduler( this->max_connects, thread_free_time ) );
+    this->m_package_size = this->m_settings->get( "package_size" ).asInt();
 }
 
 void tcpserver::wait( void respond(), void* self )

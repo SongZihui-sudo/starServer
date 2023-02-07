@@ -27,8 +27,3 @@ for i in {1..5}
 do
     gnome-terminal -t chunk_server${i} --working-directory=$script_dir/chunk_server${i} -- bash -c "$script_dir/chunk_server1/Chunk_Server ; bash"
 done
-
-# error
-else
-    echo This system is not support!
-fi

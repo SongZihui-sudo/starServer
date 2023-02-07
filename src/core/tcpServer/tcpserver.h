@@ -88,6 +88,7 @@ protected:
     size_t connect_counter;                 /* 当前的连接数 */
     lease_manager::ptr m_lease_control;     /* 租约管理器 */
     service_manager::ptr m_service_manager; /* 服务管理器 */
+    static size_t m_package_size;           /* 包大小 */
 
 private:
     size_t max_connects; /* 最大连接数 */

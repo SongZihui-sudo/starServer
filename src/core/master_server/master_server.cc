@@ -137,14 +137,19 @@ void master_server::replace_unconnect_chunk( chunk_server_info unconnect_server 
             chunk::ptr copy_chunk = nullptr;
             std::vector< std::string > res;
             /* 查看其副本是否在线 */
-            for ( size_t i = 1; i < master_server::copys; i++ )
+            for ( size_t j = 1; j < master_server::copys; j++ )
             {
                 file::ptr origin_file( new file( std::get< 0 >( iter ), master_server::max_chunk_size ) );
-                std::string copys_name = file::join_copy_name( origin_file->get_name(), i );
+                std::string copys_name = file::join_copy_name( origin_file->get_name(), j );
                 copy_chunk.reset( new chunk( copys_name, origin_file->get_path(), iter.second[i] ) );
                 copy_chunk->open( file_operation::read, master_server::m_db );
                 copy_chunk->read_meta_data( res );
                 copy_chunk->close();
+                /* 块不存在 */
+                if ( res.empty() )
+                {
+                    continue;
+                }
                 /* 判断副本所在的chunk server是否在线 */
                 if ( fail_chunk_server[chunk_server_info::join( res[0], std::stoi( res[1] ) )]
                      .addr.empty() )
@@ -155,7 +160,9 @@ void master_server::replace_unconnect_chunk( chunk_server_info unconnect_server 
             if ( !copy_chunk || res.empty() )
             {
                 /* 副本全部不在线 */
-                ERROR_STD_STREAM_LOG( g_logger ) << Logger::endl();
+                ERROR_STD_STREAM_LOG( g_logger )
+                << "Chunk copies are all offline and cannot be synchronized." << Logger::endl();
+                server_lock->release_write();
                 return;
             }
             /* 把 item 所在的 chunk server 标记为需要同步 */
@@ -180,7 +187,7 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
     {
         /* 向 chunk server 询问 from 的块数据 */
         protocol::Protocol_Struct prs(
-        110, "", from->get_name(), from->get_path(), 0, "", { S( from->get_index() ) } );
+        110, "", from->get_name(), from->get_path(), 0, "", { S( from->get_index() ), S( 0 ) } );
         IPAddress::ptr addr = IPv4Address::Create( from->addr.c_str(), from->port );
         MSocket::ptr sock   = MSocket::CreateTCP( addr );
         if ( !sock->connect( addr ) )
@@ -195,7 +202,7 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
         }
 
         /* chunk 的 数据包，一个chunk由若干个数据包进行传输 */
-        while ( prs.data != "chunk end" )
+        while ( true )
         {
             protocol::ptr current_procotol = tcpserver::recv( sock, master_server::buffer_size );
             /* 看是否接受成功 */
@@ -203,7 +210,6 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
             {
                 FATAL_STD_STREAM_LOG( g_logger ) << "%D"
                                                  << "Receive Message Error" << Logger::endl();
-                server_lock->release_write();
                 return false;
             }
             prs = current_procotol->get_protocol_struct();
@@ -211,7 +217,11 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
             if ( prs.bit == 115 )
             {
                 /* 接受数据 */
-                std::string data  = prs.data;
+                std::string data = prs.data;
+                if ( data == "chunk end" )
+                {
+                    break;
+                }
                 std::string index = prs.customize[0];
                 if ( data.size() != prs.package_size )
                 {
@@ -224,16 +234,17 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
                 /* 把数据发给, dist 块所在的chunk server */
                 DEBUG_STD_STREAM_LOG( g_logger ) << "data: " << data << Logger::endl();
                 prs.reset( 108, "", dist->get_name(), dist->get_path(), data.size(), data, { index } );
-                IPAddress::ptr addr = IPv4Address::Create( dist->addr.c_str(), dist->port );
-                MSocket::ptr sock   = MSocket::CreateTCP( addr );
-                if ( !sock->connect( addr ) )
+                IPAddress::ptr dist_addr = IPv4Address::Create( dist->addr.c_str(), dist->port );
+                MSocket::ptr dist_sock = MSocket::CreateTCP( dist_addr );
+                if ( !dist_sock->connect( dist_addr ) )
                 {
                     FATAL_STD_STREAM_LOG( g_logger )
                     << "sync chunk: Ask chunk data Fail!" << Logger::endl();
                     return false;
                 }
-                tcpserver::send( sock, prs );
-                protocol::ptr current_procotol = tcpserver::recv( sock, master_server::buffer_size );
+                tcpserver::send( dist_sock, prs );
+                protocol::ptr current_procotol
+                = tcpserver::recv( dist_sock, master_server::buffer_size );
 
                 /* 看是否接受成功 */
                 if ( !current_procotol )
@@ -252,17 +263,19 @@ bool master_server::sync_chunk( chunk::ptr from, chunk::ptr dist )
                     INFO_STD_STREAM_LOG( g_logger ) << "Sync chunk sccessfully" << Logger::endl();
                     chunk_server_list[chunk_server_info::join( dist->addr, dist->port )].is_need_sync
                     = false;
-                    return true;
                 }
-
+                /* 回复受到数据 */
+                prs.reset( 141, "", "", "", 0, "recv data ok", {} );
+                tcpserver::send( sock, prs );
+            }
+            else
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "Error Server Reply!" << Logger::endl();
                 return false;
             }
-
-            FATAL_STD_STREAM_LOG( g_logger ) << "Error Server Reply!" << Logger::endl();
-            return false;
         }
-        FATAL_STD_STREAM_LOG( g_logger ) << "Error!" << Logger::endl();
-        return false;
+
+        return true;
     }
     catch ( std::exception& e )
     {
@@ -581,7 +594,7 @@ void master_server::deal_with_101( std::vector< void* > args )
     std::string file_path = cur.path;
     std::vector< std::string > result;
     BREAK( g_logger );
-    bool flag = self->find_file_meta_data( result, file::join(file_name, file_path) );
+    bool flag = self->find_file_meta_data( result, file::join( file_name, file_path ) );
     cur.reset( 107, self->m_sock->getLocalAddress()->toString(), file_name, file_path, 0, "", {} );
     BREAK( g_logger );
     if ( flag )
@@ -645,10 +658,10 @@ void master_server::deal_with_104( std::vector< void* > args )
             crash_record[cliend_id]
             = std::tuple< std::string, size_t >( cur_server.join(), getTime() );
         }
-        size_t sum_size = 0;
+        size_t sum_size     = 0;
+        size_t chunks_index = 0;
         while ( true )
         {
-            size_t chunks_index = std::stoi( cur.customize[0] );
             if ( sum_size >= self->max_chunk_size )
             {
 #define XX()                                                                                            \
@@ -690,8 +703,8 @@ void master_server::deal_with_104( std::vector< void* > args )
                 std::string file_path = cur.path;
                 std::string data      = cur.data;
                 sum_size += data.size();
-                BREAK(g_logger);
-                DEBUG_STD_STREAM_LOG(g_logger) << "sum size: " << S(sum_size) << Logger::endl();
+                BREAK( g_logger );
+                DEBUG_STD_STREAM_LOG( g_logger ) << "sum size: " << S( sum_size ) << Logger::endl();
 
                 /* 打开文件 */
                 cur_file.reset( new file( file_name, file_path, self->max_chunk_size ) );
@@ -782,8 +795,8 @@ void master_server::deal_with_104( std::vector< void* > args )
         INFO_STD_STREAM_LOG( g_logger ) << "Begin Making copy file chunk" << Logger::endl();
         for ( size_t i = 1; i < self->copys; i++ )
         {
-            std::string file_name = "copy-" + S( i ) + "-" + cur_file->get_name();
-            file::ptr copy_file( new file( file_name, cur_file->get_path(), self->max_chunk_size ) );
+            std::string copy_file_name = "copy-" + S( i ) + "-" + cur_file->get_name();
+            file::ptr copy_file( new file( copy_file_name, cur_file->get_path(), self->max_chunk_size ) );
             for ( size_t j = 0; j < cur_file->chunks_num(); j++ )
             {
                 chunk::ptr from( new chunk( cur_file->get_url(), j ) );
@@ -793,16 +806,18 @@ void master_server::deal_with_104( std::vector< void* > args )
                 from->close();
                 chunk::ptr dist( new chunk( copy_file->get_url(), j ) );
                 BREAK( g_logger );
+                /* 给这个副本块 分配一个不同chunk server */
+                chunk_server_info random_server = random_choice_server();
+                while ( random_server.join() == chunk_server_info::join( from->addr, from->port ) )
+                {
+                    random_server = random_choice_server();
+                }
+                dist->addr = random_server.addr;
+                dist->port = random_server.port;
                 /* 直到同步副本块成功 */
+                size_t k = 0;
                 while ( true )
                 {
-                    /* 给这个副本块 分配一个chunk server */
-                    std::random_device seed;
-                    std::ranlux48 engine( seed() );
-                    std::uniform_int_distribution<> distrib( 0, available_chunk_server.size() - 1 );
-                    size_t random = distrib( engine );
-                    dist->addr = available_chunk_server[available_chunk_server_name[random]].addr;
-                    dist->port = available_chunk_server[available_chunk_server_name[random]].port;
                     /* 把内容同步到副本块上 */
                     if ( self->sync_chunk( from, dist ) )
                     {
@@ -810,20 +825,23 @@ void master_server::deal_with_104( std::vector< void* > args )
                         copy_file->open( file_operation::write, self->m_db );
                         copy_file->append_meta_data( dist->addr, dist->port );
                         copy_file->close();
-                        chunk_server_meta_data[available_chunk_server[available_chunk_server_name[random]]
-                                               .join()][copy_file->get_url()]
-                        .push_back( copy_file->chunks_num() );
+                        chunk_server_meta_data[random_server.join()][copy_file->get_url()].push_back(
+                        copy_file->chunks_num() );
                         file_url_list->push_back( copy_file->get_url() );
                         INFO_STD_STREAM_LOG( g_logger )
                         << "Copy file chunk " << S( j ) << "Successfully" << Logger::endl();
                         break;
                     }
-
                     else
                     {
+                        if ( k > 5 )
+                        {
+                            break;
+                        }
                         ERROR_STD_STREAM_LOG( g_logger )
                         << "Sync Copy file chunk Error! Retry!" << Logger::endl();
                     }
+                    k++;
                 }
             }
         }

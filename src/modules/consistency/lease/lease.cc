@@ -19,7 +19,7 @@ lease::lease( int32_t lease_times )
     /* 启动一个定时器 */
     this->m_timer->run();
     this->available = true;
-    lease_flag = &this->available;
+    lease_flag      = &this->available;
 }
 
 void lease::renew()
@@ -30,14 +30,20 @@ void lease::renew()
         this->m_timer->interrupt();
         /* 重新启动定时器 */
         this->m_timer.reset( new Timer( this->lease_invalid, this->m_secends ) );
+        this->available = true;
     }
     else
     {
-        WERN_STD_STREAM_LOG(g_logger) << "The lease has expired and cannot be renewed." << Logger::endl();
+        WERN_STD_STREAM_LOG( g_logger )
+        << "The lease has expired and cannot be renewed." << Logger::endl();
     }
 }
 
-void lease::lease_invalid() { *lease_flag = false; }
+void lease::lease_invalid()
+{
+    DEBUG_STD_STREAM_LOG( g_logger ) << "Lease is late!" << Logger::endl();
+    *lease_flag = false;
+}
 
 void lease_manager::new_lease()
 {
@@ -51,15 +57,13 @@ void lease_manager::destory_lease( std::string id )
     if ( this->lease_tab.erase( id ) )
     {
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                         << "Remove Lease Successfully!"
-                                         << Logger::endl();
+                                         << "Remove Lease Successfully!" << Logger::endl();
+        BREAK( g_logger );
+        return;
     }
-    else
-    {
-        DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                         << "Remove Lease fail!"
-                                         << Logger::endl();
-    }
+
+    DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
+                                     << "Remove Lease fail!" << Logger::endl();
 }
 
 void lease_manager::renew_lease( std::string id )
@@ -68,12 +72,10 @@ void lease_manager::renew_lease( std::string id )
     {
         this->lease_tab[id]->renew();
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                         << "Renew Lease Successfully!"
-                                         << Logger::endl();
+                                         << "Renew Lease Successfully!" << Logger::endl();
     }
     DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
-                                     << "Renew Lease fail!"
-                                     << Logger::endl();
+                                     << "Renew Lease fail!" << Logger::endl();
 }
 
 bool lease_manager::is_all_late()
@@ -90,13 +92,18 @@ bool lease_manager::is_all_late()
 
 void lease_manager::destory_invalid_lease()
 {
+    if ( this->lease_tab.empty() )
+    {
+        return;
+    }
     for ( auto item : this->lease_tab )
     {
         if ( !item.second->is_available() )
         {
-            this->destory_lease(item.first);
+            this->destory_lease( item.first );
         }
     }
+    BREAK( g_logger );
 }
 
 }
