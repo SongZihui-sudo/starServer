@@ -3,6 +3,8 @@
 #include "modules/consistency/io_lock/io_lock.h"
 #include "modules/db/database.h"
 #include "modules/log/log.h"
+#include "modules/meta_data/chunk.h"
+#include "modules/meta_data/meta_data.h"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -21,7 +23,7 @@ file::file( std::string file_url, int32_t default_chunk_size )
     this->m_name        = file_url.substr( 0, sub_str_end1 );
     size_t sub_str_end2 = file_url.find( '|', sub_str_end1 + 1 );
     this->m_path        = file_url.substr( sub_str_end1 + 1, sub_str_end2 - 1 );
-    this->create_time = getTime();
+    this->create_time   = getTime();
 }
 
 file::file( std::string file_name, std::string file_path, int32_t default_chunk_size )
@@ -153,40 +155,25 @@ bool file::del( size_t index )
 /* 重命名 */
 bool file::rename( std::string new_name )
 {
-    /* 临时文件 */
-    file::ptr new_file( new file( this->m_url, this->default_chunk_size ) );
-    /* 拷贝过去 */
-    bool flag = new_file->copy( file::ptr( this ) );
-    if ( !flag )
+    if ( new_name == this->m_name )
     {
-        return false;
+        return true;
     }
-    /* 修改路径 */
-    this->m_name = new_name;
-    this->m_url  = levelDB::joinkey( { this->m_name, new_name } );
-    new_file->open( this->m_operation_flag, this->m_db );
-    /* 重写元数据 */
+    /* 给各个块重命名 */
     for ( size_t i = 0; i < this->m_chunks_num; i++ )
     {
-        std::vector< std::string > res;
-        /* 读原来的元数据 */
-        new_file->read_chunk_meta_data( i, res );
-        this->append_meta_data( res[0], std::stoi( res[1] ) );
-        std::string data; /* 读块数据 */
-        new_file->read( data, i );
-        if ( !data.empty() )
+        chunk::ptr cp( new chunk( this->get_name(), this->get_path(), i ) );
+        cp->open( file_operation::write, this->m_db );
+        if ( !cp->rename( new_name ) )
         {
-            this->append( data );
+            return false;
         }
+        cp->close();
     }
-    /* 删除原来路径 */
-    for ( size_t i = 0; i < this->m_chunks_num; i++ )
-    {
-        new_file->del( i );
-        new_file->del_chunk_meta_data( i ); /* 删原来的元数据 */
-    }
-
-    new_file->close();
+    this->m_name = new_name;
+    this->m_url  = levelDB::joinkey( { this->m_name, this->m_path } );
+    this->m_url.pop_back();
+    this->m_db->Put( this->get_url(), S( this->m_chunks_num ) );
     this->current_operation_time = getTime();
 
     return true;
@@ -195,41 +182,27 @@ bool file::rename( std::string new_name )
 /* 路径修改 */
 bool file::move( std::string new_path )
 {
-    /* 临时文件 */
-    file::ptr new_file( new file( this->m_url, this->default_chunk_size ) );
-    /* 拷贝过去 */
-    bool flag = new_file->copy( file::ptr( this ) );
-    if ( !flag )
+    if ( new_path == this->m_path )
     {
-        return false;
+        return true;
     }
-    /* 删除原来路径 */
+    /* 给各个块修改路径 */
     for ( size_t i = 0; i < this->m_chunks_num; i++ )
     {
-        this->del( i );
-        this->del_chunk_meta_data( i ); /* 删原来的元数据 */
-    }
-    /* 修改路径 */
-    this->m_path = new_path;
-    this->m_url  = levelDB::joinkey( { this->m_name, new_path } );
-    new_file->open( this->m_operation_flag, this->m_db );
-    /* 重写元数据 */
-    for ( size_t i = 0; i < this->m_chunks_num; i++ )
-    {
-        std::vector< std::string > res;
-        /* 读原来的元数据 */
-        new_file->read_chunk_meta_data( i, res );
-        this->append_meta_data( res[0], std::stoi( res[1] ) );
-        std::string data; /* 读块数据 */
-        new_file->read( data, i );
-        if ( !data.empty() )
+        chunk::ptr cp( new chunk( this->get_name(), this->get_path(), i ) );
+        cp->open( file_operation::write, this->m_db );
+        if ( !cp->move( new_path ) )
         {
-            this->append( data );
+            return false;
         }
+        cp->close();
     }
-
-    new_file->close();
+    this->m_path = new_path;
+    this->m_url  = levelDB::joinkey( { this->m_name, this->m_path } );
+    this->m_url.pop_back();
+    this->m_db->Put( this->get_url(), S( this->m_chunks_num ) );
     this->current_operation_time = getTime();
+
     return true;
 }
 

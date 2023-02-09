@@ -18,13 +18,24 @@ tools/Master_DB
 
 tools/demo/chunk_server1/Chunk_DB
 tools/demo/chunk_server1/Chunk_Server
+tools/demo/chunk_server1/chunk_server_mem_check1.log
+
 tools/demo/chunk_server2/Chunk_DB
 tools/demo/chunk_server2/Chunk_Server
+tools/demo/chunk_server2/chunk_server_mem_check2.log
+
 tools/demo/chunk_server3/Chunk_DB
 tools/demo/chunk_server3/Chunk_Server
+tools/demo/chunk_server3/chunk_server_mem_check3.log
+
 tools/demo/chunk_server4/Chunk_DB
 tools/demo/chunk_server4/Chunk_Server
+tools/demo/chunk_server4/chunk_server_mem_check4.log
+
 tools/demo/chunk_server5/Chunk_DB
 tools/demo/chunk_server5/Chunk_Server
+tools/demo/chunk_server5/chunk_server_mem_check5.log
+
 tools/demo/master_server/Master_DB
 tools/demo/master_server/master_server
+tools/demo/master_server/master_server_mem_check.log

@@ -1,12 +1,16 @@
 #include "./master_server.h"
 #include "core/tcpServer/tcpserver.h"
+#include "modules/Scheduler/scheduler.h"
 #include "modules/common/common.h"
 #include "modules/db/database.h"
 #include "modules/log/log.h"
 #include "modules/meta_data/chunk.h"
 #include "modules/meta_data/file.h"
 #include "modules/meta_data/meta_data.h"
+#include "modules/protocol/protocol.h"
 #include "modules/setting/setting.h"
+#include "modules/socket/address.h"
+#include "modules/socket/socket.h"
 
 #include <cmath>
 #include <cstddef>
@@ -84,9 +88,12 @@ master_server::master_server( std::filesystem::path settings_path )
                 std::vector< std::string > arr;
                 chunk::ptr cur_chunk( new chunk( new_file->get_name(), new_file->get_path(), k ) );
                 new_file->read_chunk_meta_data( k, arr );
-                chunk_server_meta_data[chunk_server_info::join( arr[0], std::stoi( arr[1] ) )]
-                                      [new_file->get_url()]
-                                      .push_back( k );
+                if ( !arr.empty() )
+                {
+                    chunk_server_meta_data[chunk_server_info::join( arr[0], std::stoi( arr[1] ) )]
+                                          [new_file->get_url()]
+                                          .push_back( k );
+                }
             }
             new_file->close();
         }
@@ -363,7 +370,7 @@ void master_server::respond()
             return;
         }
 
-        MSocket::ptr remote_sock = sock_ss.top();
+        MSocket::ptr remote_sock = sock_ss.front();
 
         if ( !remote_sock->isConnected() )
         {
@@ -397,8 +404,6 @@ void master_server::respond()
 
         /* 执行相应的消息处理函数 */
         self->message_funcs[cur.bit]( { self, &cur, current_procotol.get(), remote_sock.get() } );
-
-        // sock_ss.pop();
     }
     catch ( std::exception& e )
     {
@@ -741,7 +746,7 @@ void master_server::deal_with_104( std::vector< void* > args )
                     {
                         FATAL_STD_STREAM_LOG( g_logger )
                         << "%D"
-                        << "get replty from chunk server error!" << Logger::endl();
+                        << "get reply from chunk server error!" << Logger::endl();
                         continue;
                     }
                     cur = current_protocol->get_protocol_struct();
@@ -858,70 +863,133 @@ void master_server::deal_with_104( std::vector< void* > args )
 */
 void master_server::deal_with_117( std::vector< void* > args )
 {
-    pthread_mutex_lock( &mutex );
     master_server* self           = ( master_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
 
-    /* 等待租约全部过期 */
-    while ( !self->m_lease_control->is_all_late() )
-    {
-    }
-
     std::string file_name     = cur.file_name;
     std::string file_path     = cur.path;
     std::string file_new_path = cur.customize[0];
     std::string res           = "ok";
-    file::ptr cur_file( new file( file_name, file_path, self->max_chunk_size ) );
-    if ( !cur_file->move( file_new_path ) )
+    std::string pre_file_url  = file::join( file_name, file_path );
+    bool is_exist             = false;
+    for ( size_t i = 0; i < file_url_list->size(); i++ )
     {
-        res = "false";
+        if ( file_url_list->get( i ) == pre_file_url )
+        {
+            is_exist = true;
+            break;
+        }
     }
 
-    protocol::ptr current_procotol;
-    current_procotol.reset( ( protocol* )args[2] );
-
-    for ( int i = 0; i < cur_file->chunks_num(); i++ )
+    if ( !is_exist )
     {
-        chunk::ptr cur_chunk( new chunk( cur_file->get_url(), i ) );
-        cur.reset(
-        122, self->m_sock->getLocalAddress()->toString(), file_name, file_path, 0, "", {} );
-        cur.customize.clear();
-        cur.customize.push_back( file_new_path );
-        cur.customize.push_back( std::to_string( cur_chunk->get_index() ) );
-        std::vector< std::string > res;
-        cur_chunk->open( file_operation::read, self->m_db );
-        cur_chunk->read_meta_data( res );
-        cur_chunk->close();
-        star::IPv4Address::ptr addr
-        = star::IPv4Address::Create( res[0].c_str(), std::stoi( res[1] ) );
-        star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
+        return;
+    }
 
-        if ( !sock->connect( addr ) )
+    for ( size_t j = 0; j < self->copys; j++ )
+    {
+        std::string temp_file_name = file_name;
+        if ( j )
         {
-            return;
+            temp_file_name = file::join_copy_name( file_name, j );
         }
-        tcpserver::send( sock, cur );
+        file::ptr cur_file( new file( temp_file_name, file_path, self->max_chunk_size ) );
+        cur_file->open( file_operation::read, self->m_db );
+        cur_file->close();
+        file_url_list->remove( cur_file->get_url() );
 
-        current_procotol = tcpserver::recv( remote_sock, self->buffer_size );
-
-        /* 看是否接受成功 */
-        if ( !current_procotol )
+        std::string server_addr;
+        int16_t server_port;
+        PRINT_LOG( g_logger, "%p %d%n", "DEBUG", cur_file->chunks_num() );
+        for ( int i = 0; i < cur_file->chunks_num(); i++ )
         {
-            FATAL_STD_STREAM_LOG( g_logger ) << "%D"
-                                             << "Receive Message Error" << Logger::endl();
+            chunk::ptr cur_chunk( new chunk( cur_file->get_url(), i ) );
+
+            cur.reset( 122,
+                       self->m_sock->getLocalAddress()->toString(),
+                       temp_file_name,
+                       file_path,
+                       0,
+                       "",
+                       {} );
+            cur.customize.clear();
+            cur.customize.push_back( file_new_path );
+            cur.customize.push_back( std::to_string( cur_chunk->get_index() ) );
+
+            std::vector< std::string > res;
+            cur_chunk->open( file_operation::read, self->m_db );
+            cur_chunk->read_meta_data( res );
+            cur_chunk->close();
+
+            if ( res.empty() )
+            {
+                return;
+            }
+
+            server_addr = res[0];
+            server_port = std::stoi( res[1] );
+
+            star::IPv4Address::ptr addr
+            = star::IPv4Address::Create( res[0].c_str(), std::stoi( res[1] ) );
+            star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
+            DEBUG_STD_STREAM_LOG( g_logger ) << "address: " << addr->toString() << Logger::endl();
+            if ( !sock->connect( addr ) )
+            {
+                return;
+            }
+            tcpserver::send( sock, cur );
+
+            protocol::ptr current_procotol = tcpserver::recv( sock, self->buffer_size );
+
+            /* 看是否接受成功 */
+            if ( !current_procotol )
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "Receive Message Error" << Logger::endl();
+            }
+
+            cur = current_procotol->get_protocol_struct();
+
+            if ( cur.data != "true" && cur.bit == 124 )
+            {
+                ERROR_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "send chunk data error" << Logger::endl();
+
+                return;
+            }
+            chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                                  [cur_file->get_url()]
+                                  .push_back( i );
         }
-
-        cur = current_procotol->get_protocol_struct();
-
-        if ( cur.data != "true" && cur.bit == 124 )
+        if ( !chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )].empty() )
         {
-            ERROR_STD_STREAM_LOG( g_logger ) << "%D"
-                                             << "send chunk data error" << Logger::endl();
-
-            return;
+            for ( std::unordered_map< std::string, std::vector< size_t > >::iterator iter
+                  = chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                    .begin();
+                  iter
+                  != chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                     .end(); )
+            {
+                if ( iter->first == pre_file_url )
+                {
+                    iter = chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                           .erase( iter );
+                }
+                else
+                {
+                    iter++;
+                }
+            }
         }
+        cur_file->open( file_operation::write, self->m_db );
+        if ( !cur_file->move( file_new_path ) )
+        {
+            res = "false";
+        }
+        cur_file->close();
+        file_url_list->push_back( cur_file->get_url() );
     }
 
     cur.reset( 125, "", file_name, file_new_path, 0, res, {} );
@@ -990,10 +1058,10 @@ void master_server::deal_with_126( std::vector< void* > args )
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
 
-    //self->m_lease_control->destory_invalid_lease();
+    // self->m_lease_control->destory_invalid_lease();
     self->m_lease_control->new_lease(); /* 颁发一个新租约 */
 
-    BREAK(g_logger);
+    BREAK( g_logger );
     cur.reset(
     127, self->m_sock->getLocalAddress()->toString(), "All file Meta data", "", 0, "None", {} );
 
@@ -1028,11 +1096,265 @@ master_server::chunk_server_info master_server::random_choice_server()
 /*
     文件重命名
 */
-void master_server::deal_with_134( std::vector< void* > args ) {}
+void master_server::deal_with_134( std::vector< void* > args )
+{
+    master_server* self           = ( master_server* )args[0];
+    protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+
+    std::string file_name     = cur.file_name;
+    std::string file_path     = cur.path;
+    std::string file_new_name = cur.customize[0];
+    std::string res           = "ok";
+    std::string pre_file_url  = file::join( file_name, file_path );
+    bool is_exist             = false;
+    for ( size_t i = 0; i < file_url_list->size(); i++ )
+    {
+        if ( file_url_list->get( i ) == pre_file_url )
+        {
+            is_exist = true;
+            break;
+        }
+    }
+
+    if ( !is_exist )
+    {
+        return;
+    }
+
+    for ( size_t j = 0; j < self->copys; j++ )
+    {
+        std::string temp_file_name = file_name;
+        if ( j )
+        {
+            temp_file_name = file::join_copy_name( file_name, j );
+        }
+        file::ptr cur_file( new file( temp_file_name, file_path, self->max_chunk_size ) );
+        cur_file->open( file_operation::read, self->m_db );
+        cur_file->close();
+        file_url_list->remove( cur_file->get_url() );
+
+        std::string server_addr;
+        int16_t server_port;
+        PRINT_LOG( g_logger, "%p %d%n", "DEBUG", cur_file->chunks_num() );
+        for ( int i = 0; i < cur_file->chunks_num(); i++ )
+        {
+            chunk::ptr cur_chunk( new chunk( cur_file->get_url(), i ) );
+
+            cur.reset( 137,
+                       self->m_sock->getLocalAddress()->toString(),
+                       temp_file_name,
+                       file_path,
+                       0,
+                       "",
+                       {} );
+            cur.customize.clear();
+            cur.customize.push_back( file_new_name );
+            cur.customize.push_back( std::to_string( cur_chunk->get_index() ) );
+
+            std::vector< std::string > res;
+            cur_chunk->open( file_operation::read, self->m_db );
+            cur_chunk->read_meta_data( res );
+            cur_chunk->close();
+
+            if ( res.empty() )
+            {
+                return;
+            }
+
+            server_addr = res[0];
+            server_port = std::stoi( res[1] );
+
+            star::IPv4Address::ptr addr
+            = star::IPv4Address::Create( res[0].c_str(), std::stoi( res[1] ) );
+            star::MSocket::ptr sock = star::MSocket::CreateTCP( addr );
+            DEBUG_STD_STREAM_LOG( g_logger ) << "address: " << addr->toString() << Logger::endl();
+            if ( !sock->connect( addr ) )
+            {
+                return;
+            }
+            tcpserver::send( sock, cur );
+
+            protocol::ptr current_procotol = tcpserver::recv( sock, self->buffer_size );
+
+            /* 看是否接受成功 */
+            if ( !current_procotol )
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "Receive Message Error" << Logger::endl();
+            }
+
+            cur = current_procotol->get_protocol_struct();
+
+            if ( cur.data != "true" && cur.bit == 139 )
+            {
+                ERROR_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "send chunk data error" << Logger::endl();
+
+                return;
+            }
+            chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                                  [cur_file->get_url()]
+                                  .push_back( i );
+        }
+        if ( !chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )].empty() )
+        {
+            for ( std::unordered_map< std::string, std::vector< size_t > >::iterator iter
+                  = chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                    .begin();
+                  iter
+                  != chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                     .end(); )
+            {
+                if ( iter->first == pre_file_url )
+                {
+                    iter = chunk_server_meta_data[chunk_server_info::join( server_addr, server_port )]
+                           .erase( iter );
+                }
+                else
+                {
+                    iter++;
+                }
+            }
+        }
+        cur_file->open( file_operation::write, self->m_db );
+        std::string rename_new_name = file_new_name;
+        if ( j )
+        {   
+            rename_new_name = file::join_copy_name(rename_new_name, j);
+        }
+        if ( !cur_file->rename( rename_new_name ) )
+        {
+            res = "false";
+        }
+        cur_file->close();
+        file_url_list->push_back( cur_file->get_url() );
+    }
+
+    cur.reset( 140, "", file_name, file_new_name, 0, res, {} );
+    tcpserver::send( remote_sock, cur );
+}
 
 /*
     删除文件的元数据
 */
-void master_server::deal_with_135( std::vector< void* > args ) {}
+void master_server::deal_with_135( std::vector< void* > args )
+{
+    master_server* self           = ( master_server* )args[0];
+    protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+
+    /* 等待租约全部过期 */
+    BREAK( g_logger );
+    while ( !self->m_lease_control->is_all_late() )
+    {
+    }
+    std::string file_name = cur.file_name;
+    std::string file_path = cur.path;
+
+    std::string reply = "true";
+    /* 删除副本及文件本体 */
+    for ( size_t i = 0; i < self->copys; i++ )
+    {
+        std::string cur_file_name = file_name;
+        if ( i )
+        {
+            cur_file_name = file::join_copy_name( file_name, i );
+        }
+
+        /* 打开文件 */
+        file::ptr fp( new file( cur_file_name, file_path, self->max_chunk_size ) );
+        fp->open( file_operation::read, self->m_db );
+        fp->close();
+        std::string server_address = "";
+        int64_t server_port        = 0;
+        /* 删除文件的元数据 与 数据 */
+        for ( size_t j = 0; j < fp->chunks_num(); j++ )
+        {
+            /* 与 chunk server 通讯，删数据 */
+            std::vector< std::string > res;
+            fp->open( file_operation::read, self->m_db );
+            fp->read_chunk_meta_data( j, res );
+            fp->close();
+            server_address = res[0];
+            server_port    = std::stoi( res[1] );
+            IPv4Address::ptr addr = IPv4Address::Create( server_address.c_str(), server_port );
+            DEBUG_STD_STREAM_LOG( g_logger ) << "address: " << addr->toString() << Logger::endl();
+            MSocket::ptr sock = MSocket::CreateTCP( addr );
+
+            /* 查看是否连接成功 */
+            if ( !sock->connect( addr ) )
+            {
+                return;
+            }
+
+            cur.reset( 113,
+                       self->m_sock->getLocalAddress()->toString(),
+                       fp->get_name(),
+                       fp->get_path(),
+                       0,
+                       "",
+                       { S( j ) } );
+            tcpserver::send( sock, cur );
+            protocol::ptr cur_protocol = tcpserver::recv( sock, self->buffer_size );
+            if ( !cur_protocol )
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "%D"
+                                                 << "Receive Message Error" << Logger::endl();
+                return;
+            }
+
+            cur = cur_protocol->get_protocol_struct();
+            if ( cur.bit == 129 && cur.data == "true" )
+            {
+                INFO_STD_STREAM_LOG( g_logger )
+                << "%D"
+                << "Delete the chunk data Successfully!" << Logger::endl();
+            }
+            else
+            {
+                FATAL_STD_STREAM_LOG( g_logger ) << "Delete the chunk data Fail!" << Logger::endl();
+                return;
+            }
+
+            fp->open( file_operation::write, self->m_db );
+            bool flag = fp->del_chunk_meta_data( j );
+            fp->close();
+            if ( !flag )
+            {
+                return;
+            }
+        }
+        file_url_list->remove( fp->join() );
+        BREAK( g_logger );
+        if ( !chunk_server_meta_data[chunk_server_info::join( server_address, server_port )].empty() )
+        {
+            for ( std::unordered_map< std::string, std::vector< size_t > >::iterator iter
+                  = chunk_server_meta_data[chunk_server_info::join( server_address, server_port )]
+                    .begin();
+                  iter
+                  != chunk_server_meta_data[chunk_server_info::join( server_address, server_port )]
+                     .end(); )
+            {
+                if ( iter->first == fp->join() )
+                {
+                    iter = chunk_server_meta_data[chunk_server_info::join( server_address, server_port )]
+                           .erase( iter );
+                    BREAK( g_logger );
+                }
+                else
+                {
+                    iter++;
+                }
+            }
+        }
+        BREAK( g_logger );
+    }
+
+    cur.reset( 138, self->m_sock->getLocalAddress()->toString(), file_name, file_path, reply.size(), reply, {} );
+    tcpserver::send( remote_sock, cur );
+}
 
 }

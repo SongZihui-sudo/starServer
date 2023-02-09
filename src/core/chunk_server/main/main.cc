@@ -14,11 +14,15 @@ star::Logger::ptr global_logger( STAR_NAME( "global_logger" ) );
 int main()
 {
     cs.reset( ( new star::chunk_server( "./chunk_server_settings.json" ) ) );
-    
+
     cs->get_service_manager()->register_service( "free_thread_checker",
                                                  std::function< void() >( star::Scheduler::check_free_thread ) );
-    cs->get_service_manager()->start();
     
+    //cs->get_service_manager()->register_service( "free_socket_checker",
+      //                                           std::function< void() >( star::chunk_server::clear_socket ) );
+
+    cs->get_service_manager()->start();
+
     cs->bind();
     /* 新建一个线程，等待连接 */
 

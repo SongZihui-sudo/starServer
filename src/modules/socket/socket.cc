@@ -72,7 +72,14 @@ MSocket::MSocket( int family, int type, int protocol )
 {
 }
 
-MSocket::~MSocket() { close(); }
+MSocket::~MSocket()
+{
+    if ( !this )
+    {
+        return;
+    }
+    close();
+}
 
 bool MSocket::getOption( int level, int option, void* result, socklen_t* len )
 {
@@ -80,9 +87,9 @@ bool MSocket::getOption( int level, int option, void* result, socklen_t* len )
     if ( rt )
     {
         DEBUG_STD_STREAM_LOG( g_logger )
-        << "getOption sock=" << std::to_string( m_sock )
-        << " level=" << std::to_string( level ) << " option=" << std::to_string( option )
-        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
+        << "getOption sock=" << std::to_string( m_sock ) << " level=" << std::to_string( level )
+        << " option=" << std::to_string( option ) << " errno=" << std::to_string( errno )
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;
@@ -93,9 +100,9 @@ bool MSocket::setOption( int level, int option, const void* result, socklen_t le
     if ( setsockopt( m_sock, level, option, result, ( socklen_t )len ) )
     {
         DEBUG_STD_STREAM_LOG( g_logger )
-        << "getOption sock=" << std::to_string( m_sock )
-        << " level=" << std::to_string( level ) << " option=" << std::to_string( option )
-        << " errno=" << std::to_string( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
+        << "getOption sock=" << std::to_string( m_sock ) << " level=" << std::to_string( level )
+        << " option=" << std::to_string( option ) << " errno=" << std::to_string( errno )
+        << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;
@@ -144,8 +151,8 @@ bool MSocket::bind( const Address::ptr addr )
     if ( STAR_UNLIKELY( addr->getFamily() != m_family ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
-        << "bind sock.family(" << S( m_family ) << ") addr.family("
-        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << Logger::endl();
+        << "bind sock.family(" << S( m_family ) << ") addr.family(" << S( addr->getFamily() )
+        << ") not equal, addr=" << addr->toString() << Logger::endl();
         return false;
     }
 
@@ -161,8 +168,8 @@ bool MSocket::bind( const Address::ptr addr )
 
     if ( ::bind( m_sock, addr->getAddr(), addr->getAddrLen() ) )
     {
-        ERROR_STD_STREAM_LOG( g_logger )
-        << "bind error errrno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
+        ERROR_STD_STREAM_LOG( g_logger ) << "bind error errrno=" << S( errno )
+                                         << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     getLocalAddress();
@@ -173,8 +180,7 @@ bool MSocket::reconnect( uint64_t timeout_ms )
 {
     if ( !m_remoteAddress )
     {
-        ERROR_STD_STREAM_LOG( g_logger ) << "reconnect m_remoteAddress is null"
-                                         << Logger::endl();
+        ERROR_STD_STREAM_LOG( g_logger ) << "reconnect m_remoteAddress is null" << Logger::endl();
         return false;
     }
     m_localAddress.reset();
@@ -193,19 +199,19 @@ bool MSocket::connect( const Address::ptr addr, uint64_t timeout_ms )
         }
     }
 
-    //DEBUG_STD_STREAM_LOG(g_logger) << m_remoteAddress->toString() << Logger::endl();
+    // DEBUG_STD_STREAM_LOG(g_logger) << m_remoteAddress->toString() << Logger::endl();
 
     if ( STAR_UNLIKELY( addr->getFamily() != m_family ) )
     {
         ERROR_STD_STREAM_LOG( g_logger )
-        << "connect sock.family(" << S( m_family ) << ") addr.family("
-        << S( addr->getFamily() ) << ") not equal, addr=" << addr->toString() << Logger::endl();
+        << "connect sock.family(" << S( m_family ) << ") addr.family(" << S( addr->getFamily() )
+        << ") not equal, addr=" << addr->toString() << Logger::endl();
         return false;
     }
 
     if ( timeout_ms == ( uint64_t )-1 )
     {
-        //DEBUG_STD_STREAM_LOG(g_logger) << addr->toString() << Logger::endl();
+        // DEBUG_STD_STREAM_LOG(g_logger) << addr->toString() << Logger::endl();
         if ( ::connect( m_sock, addr->getAddr(), addr->getAddrLen() ) )
         {
             ERROR_STD_STREAM_LOG( g_logger )
@@ -234,14 +240,13 @@ bool MSocket::listen( int backlog )
 {
     if ( !isValid() )
     {
-        ERROR_STD_STREAM_LOG( g_logger ) << "listen error sock=-1"
-                                         << Logger::endl();
+        ERROR_STD_STREAM_LOG( g_logger ) << "listen error sock=-1" << Logger::endl();
         return false;
     }
     if ( ::listen( m_sock, backlog ) )
     {
-        ERROR_STD_STREAM_LOG( g_logger )
-        << "listen error errno=" << S( errno ) << " errstr=" << strerror( errno ) << Logger::endl();
+        ERROR_STD_STREAM_LOG( g_logger ) << "listen error errno=" << S( errno )
+                                         << " errstr=" << strerror( errno ) << Logger::endl();
         return false;
     }
     return true;

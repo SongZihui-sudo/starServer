@@ -110,6 +110,11 @@ public:
         url.pop_back();
         return url;
     }
+
+    std::string join()
+    {
+        return this->m_url;
+    }
     
     /* 设置 chunks 的大小 */
     void set_chunks_num( size_t chunks_num ) { this->m_chunks_num = chunks_num; }
@@ -146,7 +151,7 @@ private:
     levelDB::ptr m_db;               /* 指向数据库的指针 */
     bool open_flag;                  /* 是否打开 */
     std::string m_url;               /* url 索引 */
-    int32_t m_chunks_num;            /* 块数 */
+    int32_t m_chunks_num = 0;            /* 块数 */
     int32_t default_chunk_size;
     io_lock::ptr m_lock; /* 锁 */
 };

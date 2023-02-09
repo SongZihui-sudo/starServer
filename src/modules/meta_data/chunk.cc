@@ -4,6 +4,7 @@
 #include "modules/db/database.h"
 #include "modules/log/log.h"
 #include <string>
+#include <vector>
 
 namespace star
 {
@@ -22,6 +23,7 @@ chunk::chunk( std::string chunk_url )
 chunk::chunk( std::string file_url, size_t index )
 {
     this->m_url = levelDB::joinkey( { file_url, S( index ) } );
+    this->m_url.pop_back();
     this->index = index;
     this->m_lock.reset( new io_lock() );
     size_t sub_str_end1 = file_url.find( '|' );
@@ -32,12 +34,11 @@ chunk::chunk( std::string file_url, size_t index )
 
 chunk::chunk( std::string name, std::string path, size_t index )
 {
-    this->m_name         = name;
-    this->m_path         = path;
-    std::string file_url = this->join( name, path );
-    this->m_url          = levelDB::joinkey( { file_url, S( index ) } );
+    this->m_name = name;
+    this->m_path = path;
+    this->m_url  = this->join( name, path, index );
     this->m_url.pop_back();
-    this->index          = index;
+    this->index = index;
     this->m_lock.reset( new io_lock() );
 }
 
@@ -226,6 +227,59 @@ bool chunk::del()
     bool del_flag = this->m_db->Delete( this->m_url );
     this->m_lock->release_write();
     return del_flag;
+}
+
+bool chunk::rename( std::string new_name )
+{
+    std::string data;
+    this->read( data );
+    std::vector< std::string > res;
+    this->read_meta_data( res );
+    this->del();
+    this->del_meta_data();
+    this->m_name        = new_name;
+    std::string new_url = this->join( this->m_name, this->m_path, this->get_index() );
+    this->m_url         = new_url;
+    this->m_url.pop_back();
+    if ( !this->write( data ) )
+    {
+        return false;
+    }
+    if ( !res.empty() )
+    {
+        if ( !this->record_meta_data( res[0], std::stoi( res[1] ), this->get_index() ) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool chunk::move( std::string new_path )
+{
+    std::string data;
+    this->read( data );
+    std::vector< std::string > res;
+    this->read_meta_data( res );
+    this->del();
+    this->del_meta_data();
+    this->m_path        = new_path;
+    std::string new_url = this->join( this->m_name, this->m_path, this->get_index() );
+    this->m_url         = new_url;
+    this->m_url.pop_back();
+    if ( !this->write( data ) )
+    {
+        return false;
+    }
+    if ( !res.empty() )
+    {
+        if ( STAR_UNLIKELY( !this->record_meta_data( res[0], std::stoi( res[1] ), this->get_index() ) ) )
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 }

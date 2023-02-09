@@ -247,12 +247,15 @@ void LogFormatter::format( const char* pattern, va_list args )
                     break;
                 case 'd':
                     current << S( va_arg( args, int ) );
+                    pattern++;
                     break;
                 case 's':
                     current << va_arg( args, char* );
+                    pattern++;
                     break;
                 case 'o':
                     current << S(va_arg( args, double ));
+                    pattern++;
                     break;
                 case '0':
                     EndItem::format( current, m_event );

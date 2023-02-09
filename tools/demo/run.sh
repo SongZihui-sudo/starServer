@@ -26,8 +26,24 @@ echo work-directory=$script_dir
 # 创建多个终端运行 master server 和 chunk server 的集群
 
 echo System: $XDG_CURRENT_DESKTOP
-for i in {1..5}
-do
-    gnome-terminal -t chunk_server${i} --working-directory=$script_dir/chunk_server${i} -- bash -c "$script_dir/chunk_server1/Chunk_Server ; bash"
-done
-    gnome-terminal -t master_server --working-directory=$script_dir/master_server -- bash -c "$script_dir/master_server/master_server ; bash"
+
+if [ ${1} == -memcheck ]; then
+    # 探测内存泄漏，需要安装 valgrind
+    for i in {1..5}
+    do
+        gnome-terminal -t chunk_server${i} --working-directory=$script_dir/chunk_server${i} -- bash -c  \
+            "valgrind --tool=memcheck --leak-check=full --show-reachable=yes --log-file=chunk_server_mem_check${i}.log --trace-children=yes $script_dir/chunk_server${i}/Chunk_Server ; bash"
+    done
+    gnome-terminal -t master_server --working-directory=$script_dir/master_server -- bash -c    \
+        "valgrind --tool=memcheck --leak-check=full --show-reachable=yes --log-file=master_server_mem_check.log --trace-children=yes $script_dir/master_server/master_server ; bash"
+else
+    # 不探测内存泄漏，直接运行
+    for i in {1..5}
+    do
+        gnome-terminal -t chunk_server${i} --working-directory=$script_dir/chunk_server${i} -- bash -c "$script_dir/chunk_server${i}/Chunk_Server ; bash"
+    done
+        gnome-terminal -t master_server --working-directory=$script_dir/master_server -- bash -c "$script_dir/master_server/master_server ; bash"
+fi
+
+
+

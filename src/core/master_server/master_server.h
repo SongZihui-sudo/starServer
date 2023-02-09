@@ -59,7 +59,7 @@ public:
     typedef std::shared_ptr< master_server > ptr;
 
     master_server( std::filesystem::path settings_path );
-    virtual ~master_server() = default;
+    virtual ~master_server() { this->m_db->close(); };
 
 public:
     /* 心跳机制，定时向 chunk server 发消息，判断其是否在线 */
@@ -121,7 +121,9 @@ protected:
         { 117, std::function< void( std::vector< void* > ) >( deal_with_117 ) },
         { 118, std::function< void( std::vector< void* > ) >( deal_with_118 ) },
         { 119, std::function< void( std::vector< void* > ) >( deal_with_119 ) },
-        { 126, std::function< void( std::vector< void* > ) >( deal_with_126 ) } };
+        { 126, std::function< void( std::vector< void* > ) >( deal_with_126 ) },
+        { 135, std::function< void( std::vector< void* > ) >( deal_with_135 ) },
+        { 134, std::function< void( std::vector< void* > ) >( deal_with_134 ) } };
 
     /* 加密用户密码 */
     static std::string encrypt_pwd( std::string pwd );

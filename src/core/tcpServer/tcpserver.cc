@@ -1,9 +1,11 @@
 #include "./tcpserver.h"
 #include "modules/log/log.h"
+#include "modules/socket/socket.h"
 
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -13,11 +15,12 @@
 namespace star
 {
 std::stack< void* > arg_ss;
-std::stack< MSocket::ptr > sock_ss;
+std::deque< MSocket::ptr > sock_ss;
 static Logger::ptr g_logger( STAR_NAME( "global_logger" ) );
-size_t tcpserver::m_package_size = 0;
-levelDB::ptr tcpserver::m_db     = nullptr;
-size_t tcpserver::buffer_size    = 0;
+size_t tcpserver::m_package_size            = 0;
+levelDB::ptr tcpserver::m_db                = nullptr;
+size_t tcpserver::buffer_size               = 0;
+int64_t tcpserver::m_socket_free_check_time = 0;
 
 tcpserver::tcpserver( std::filesystem::path settings_path )
 {
@@ -48,6 +51,7 @@ tcpserver::tcpserver( std::filesystem::path settings_path )
     int64_t thread_free_time = this->m_settings->get( "thread_free_time" ).asInt64();
     server_scheduler.reset( new Scheduler( this->max_connects, thread_free_time ) );
     this->m_package_size = this->m_settings->get( "package_size" ).asInt();
+    this->m_socket_free_check_time = this->m_settings->get( "socket_free_check_time" ).asInt64();
 }
 
 void tcpserver::wait( void respond(), void* self )
@@ -72,9 +76,9 @@ void tcpserver::wait( void respond(), void* self )
         remote_sock = this->m_sock->accept();
         if ( remote_sock )
         {
-            sock_ss.push( remote_sock );
+            sock_ss.push_front( remote_sock );
             this->connect_counter++;
-
+            BREAK( g_logger );
             INFO_STD_STREAM_LOG( g_logger )
             << std::to_string( getTime() ) << " <----> "
             << "New Connect Form:" << this->m_sock->getRemoteAddress()->toString()
@@ -85,7 +89,7 @@ void tcpserver::wait( void respond(), void* self )
             /* 把新连接放入到调度器里 */
             server_scheduler->Regist_task( std::function< void() >( respond ), thread_name );
             server_scheduler->manage();
-
+            BREAK( g_logger );
             index++;
         }
     }
@@ -207,6 +211,54 @@ void tcpserver::bind()
 
     /* 释放内存 */
     delete[] addr;
+}
+
+void tcpserver::clear_socket()
+{
+    INFO_STD_STREAM_LOG( g_logger )
+    << "%D"
+    << "Begin Clear the free Socket Connection!" << Logger::endl();
+
+    if ( sock_ss.empty() )
+    {
+        INFO_STD_STREAM_LOG( g_logger )
+        << "%D"
+        << "Clear the free Socket Connection End!" << Logger::endl();
+
+        sleep( tcpserver::m_socket_free_check_time );
+        clear_socket();
+    }
+
+    for ( std::deque< MSocket::ptr >::iterator it = sock_ss.begin(); it != sock_ss.end();)
+    {
+        if ( !it->get() )
+        {
+            it = sock_ss.erase( it );
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "%D"
+            << "The socket obj is null, Remove the Free Socket Obj Successfully" << Logger::endl();
+        }
+        else if ( !it->get()->isConnected() && !it->get()->isValid() )
+        {
+            it = sock_ss.erase( it );
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "%D"
+            << "Remove the Free Socket Obj Successfully" << Logger::endl();
+        }
+        else
+        {
+            it++;
+            DEBUG_STD_STREAM_LOG( g_logger )
+            << "%D"
+            << "The socket obj is in use can not Remove" << Logger::endl();
+        }
+    }
+
+    INFO_STD_STREAM_LOG( g_logger ) << "%D"
+                                    << "Clear the free Socket Connection End!" << Logger::endl();
+
+    sleep( tcpserver::m_socket_free_check_time );
+    tcpserver::clear_socket();
 }
 
 }

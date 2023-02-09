@@ -20,7 +20,7 @@ void io_lock::lock_read( file_operation flag )
         /* 阻塞当前的线程 */
         while ( true )
         {
-            if ( this->m_signal == read_unlock || this->m_signal == none_lock )
+            if ( this->m_signal == read_unlock || this->m_signal == none_lock || this->m_signal == write_unlock )
             {    
                 break;
             }
@@ -44,7 +44,7 @@ void io_lock::lock_write( file_operation flag )
     /* 上锁后读和写都不能在进行，等待 */
     while ( true )
     {
-        if ( this->m_signal == write_unlock || this->m_signal == none_lock )
+        if ( this->m_signal == write_unlock || this->m_signal == none_lock || this->m_signal == read_unlock )
         {
             break;
         }

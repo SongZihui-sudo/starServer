@@ -2,10 +2,12 @@
 #define TCPSERVER_H
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <stack>
 #include <string>
+#include <sys/types.h>
 
 #include "../../modules/Scheduler/scheduler.h"
 #include "../../modules/db/database.h"
@@ -21,7 +23,7 @@ namespace star
 
 static MSocket::ptr remote_sock;
 extern std::stack< void* > arg_ss;
-extern std::stack< MSocket::ptr > sock_ss;
+extern std::deque< MSocket::ptr > sock_ss;
 
 class tcpserver
 {
@@ -73,8 +75,15 @@ public:
      */
     static int send( MSocket::ptr remote_sock, protocol::Protocol_Struct buf );
 
-    /* 获取 service_manager */
+    /* 
+        获取 service_manager 
+    */
     service_manager::ptr get_service_manager() { return this->m_service_manager; }
+
+    /* 
+        清理队列里的socket对象
+     */
+    static void clear_socket();
 
 protected:
     std::string m_name;                     /* 服务器 */
@@ -89,6 +98,7 @@ protected:
     lease_manager::ptr m_lease_control;     /* 租约管理器 */
     service_manager::ptr m_service_manager; /* 服务管理器 */
     static size_t m_package_size;           /* 包大小 */
+    static int64_t m_socket_free_check_time;    /* 检查socket的间隔时间 */
 
 private:
     size_t max_connects; /* 最大连接数 */

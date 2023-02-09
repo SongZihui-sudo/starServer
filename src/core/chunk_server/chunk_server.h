@@ -36,7 +36,7 @@ public:
     typedef std::shared_ptr< chunk_server > ptr;
 
     chunk_server( std::filesystem::path settins_path );
-    ~chunk_server() = default;
+    ~chunk_server() { this->m_db->close(); };
 
 public:
     /* 响应 */
@@ -52,14 +52,15 @@ protected:
 
     static void deal_with_110( std::vector< void* > args ); /* 给客户端发送块数据 */
 
-    static void deal_with_137(std::vector< void* > args);   /* 块重命名 */
+    static void deal_with_137( std::vector< void* > args ); /* 块重命名 */
 
     /* 响应函数映射表 */
     std::map< int32_t, std::function< void( std::vector< void* > ) > > message_funcs
     = { { 108, std::function< void( std::vector< void* > ) >( deal_with_108 ) },
         { 122, std::function< void( std::vector< void* > ) >( deal_with_122 ) },
         { 113, std::function< void( std::vector< void* > ) >( deal_with_113 ) },
-        { 110, std::function< void( std::vector< void* > ) >( deal_with_110 ) } };
+        { 110, std::function< void( std::vector< void* > ) >( deal_with_110 ) },
+        { 137, std::function< void( std::vector< void* > ) >( deal_with_137 ) } };
 
     /* 打印一个字符画 */
     void print_logo()
@@ -70,8 +71,7 @@ protected:
         << " \\___ \\  | __|  / _` | | '__| | |_    / __|\n"
         << "  ___) | | |_  | (_| | | |    |  _|   \\__ \\\n"
         << " |____/   \\__|  \\__,_| |_|    |_|     |___/\n"
-        << "                            ----> Chunk Server Exploded version"
-        << Logger::endl();
+        << "                            ----> Chunk Server Exploded version" << Logger::endl();
     }
 
 private:

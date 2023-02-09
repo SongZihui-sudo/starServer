@@ -1,6 +1,7 @@
 #include "./scheduler.h"
 #include "modules/common/common.h"
 #include "modules/log/log.h"
+#include "modules/thread/thread.h"
 
 #include <aco.h>
 #include <cstdint>
@@ -197,17 +198,18 @@ void Scheduler::check_free_thread()
         check_free_thread();
     }
     /* 查看空闲的进程, 空闲时间过长的话，杀死这个进程*/
-    int64_t current_time = getTime();
-    int i                = 0;
-    for ( auto item : Scheduler::m_threads )
+    int i = 0;
+    for ( std::vector< Threading::ptr >::iterator it = Scheduler::m_threads.begin();
+          it != Scheduler::m_threads.end(); )
     {
-        if ( item->get_status() == Threading::FREE )
+        if ( it->get()->get_status() == Threading::FREE )
         {
-            int64_t free_time = current_time - item->get_task_end_time();
+            int64_t current_time = getTime();
+            int64_t free_time    = current_time - it->get()->get_task_end_time();
             if ( free_time > Scheduler::thread_free_time )
             {
-                pid_t thread_id         = item->get_id();
-                std::string thread_name = item->get_name();
+                pid_t thread_id         = it->get()->get_id();
+                std::string thread_name = it->get()->get_name();
                 Scheduler::m_threads.erase( Scheduler::m_threads.begin() + i );
                 PRINT_LOG( g_logger,
                            "%p Thread: %N id: %t thread free time: %d Remove "
@@ -217,6 +219,14 @@ void Scheduler::check_free_thread()
                            thread_id,
                            free_time );
             }
+            else
+            {
+                it++;
+            }
+        }
+        else
+        {
+            it++;
         }
         i++;
     }

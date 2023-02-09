@@ -19,7 +19,7 @@ public:
     typedef std::shared_ptr< chunk > ptr;
     chunk( std::string file_url, size_t index );
     chunk( std::string name, std::string path, size_t index );
-    chunk(std::string chunk_url);
+    chunk( std::string chunk_url );
     ~chunk() = default;
 
 public:
@@ -84,11 +84,11 @@ public:
     size_t get_index() { return this->index; }
 
     /*
-        生成文件资源的 key 值
+        生成文件块资源的 key 值
     */
-    static std::string join( std::string file_name, std::string file_path )
+    static std::string join( std::string file_name, std::string file_path, size_t index )
     {
-        return file_name + "::" + file_path;
+        return levelDB::joinkey( { file_name, file_path, S( index ) } );
     }
 
     /*
@@ -105,6 +105,27 @@ public:
         获取 url
      */
     std::string get_url() { return this->m_url; }
+
+    /*
+        块的重命名
+     */
+    bool rename( std::string new_name );
+
+    /* 
+        块移动
+     */
+    bool move(std::string new_path);
+
+    /*
+        重载记录文件块的元数据
+     */
+    bool record_meta_data( std::string addr, int16_t port, size_t index )
+    {
+        this->addr  = addr;
+        this->port  = port;
+        this->index = index;
+        return this->record_meta_data();
+    }
 
 public:
     std::string addr;

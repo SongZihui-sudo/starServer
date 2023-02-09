@@ -1,5 +1,9 @@
 #include "./chunk_server.h"
 #include "core/tcpServer/tcpserver.h"
+#include "modules/log/log.h"
+#include "modules/meta_data/chunk.h"
+#include "modules/meta_data/file.h"
+#include "modules/meta_data/meta_data.h"
 
 #include <bits/types/FILE.h>
 #include <cstddef>
@@ -40,7 +44,7 @@ void chunk_server::respond()
             return;
         }
 
-        MSocket::ptr remote_sock = sock_ss.top();
+        MSocket::ptr& remote_sock = sock_ss.front();
 
         if ( !remote_sock->isConnected() )
         {
@@ -141,8 +145,11 @@ void chunk_server::deal_with_122( std::vector< void* > args )
 {
     chunk_server* self            = ( chunk_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    int port                      = self->m_settings->get( "server" )["port"].asInt();
-    std::string flag              = "true";
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+    
+    int port         = self->m_settings->get( "server" )["port"].asInt();
+    std::string flag = "true";
 
     std::string file_new_path = cur.customize[0];
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
@@ -166,14 +173,17 @@ void chunk_server::deal_with_113( std::vector< void* > args )
 {
     chunk_server* self            = ( chunk_server* )args[0];
     protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
-    std::string flag              = "true";
-    int port                      = self->m_settings->get( "server" )["port"].asInt();
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+
+    BREAK( g_logger );
+    std::string flag = "true";
     file::ptr cur_file( new file( cur.file_name, cur.path, self->max_chunk_size ) );
     cur_file->open( file_operation::write, self->m_db ); /* 打开文件 */
     size_t index = std::stoi( cur.customize[0] );
     bool bit     = cur_file->del( index );
     cur_file->close(); /* 关闭文件 */
-
+    BREAK( g_logger );
     if ( !bit )
     {
         flag = "false";
@@ -293,6 +303,29 @@ void chunk_server::deal_with_110( std::vector< void* > args )
 /*
     块重命名
 */
-void chunk_server::deal_with_137( std::vector< void* > args ) {}
+void chunk_server::deal_with_137( std::vector< void* > args )
+{
+    chunk_server* self            = ( chunk_server* )args[0];
+    protocol::Protocol_Struct cur = *( protocol::Protocol_Struct* )args[1];
+    MSocket::ptr remote_sock;
+    remote_sock.reset( ( MSocket* )args[3] );
+
+    std::string reply = "true";
+
+    std::string file_name = cur.file_name;
+    std::string file_path = cur.path;
+    std::string new_name = cur.customize[0];
+
+    file::ptr fp( new file( file_name, file_path, self->max_chunk_size ) );
+    fp->open( file_operation::write, self->m_db );
+    if ( !fp->rename( new_name ) )
+    {
+        reply = "false";
+    }
+    fp->close();
+    cur.reset( 139, self->m_sock->getLocalAddress()->toString(), new_name, file_path, reply.size(), reply, {} );
+    tcpserver::send( remote_sock, cur );
+    BREAK(g_logger);
+}
 
 }

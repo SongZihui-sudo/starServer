@@ -28,6 +28,9 @@ int main()
                                                  std::function< void() >( star::master_server::heart_beat ) );
     cs->get_service_manager()->register_service( "free_thread_checker",
                                                  std::function< void() >( star::Scheduler::check_free_thread ) );
+    //cs->get_service_manager()->register_service( "free_socket_checker",
+      //                                         std::function< void() >( star::master_server::clear_socket ) );
+
     cs->get_service_manager()->start();
 
     INFO_STD_STREAM_LOG( global_logger )

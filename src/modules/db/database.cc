@@ -224,8 +224,9 @@ bool levelDB::Get( std::string key, std::string& value )
         return true;
     }
 
-    FATAL_STD_STREAM_LOG( this->m_logger ) << "Leveldb Get Error:" << status.ToString() << "key: " << key << "%n"
-                                           << "%0";
+    FATAL_STD_STREAM_LOG( this->m_logger )
+    << "Leveldb Get Error:" << status.ToString() << "key: " << key << "%n"
+    << "%0";
     return false;
 }
 
@@ -312,7 +313,7 @@ bool levelDBList::push_front( std::string value )
 
 bool levelDBList::pop_front()
 {
-    for ( size_t i = 0; i < this->length; i++ )
+    for ( size_t i = 0; i < this->length - 1; i++ )
     {
         std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
         std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
@@ -359,7 +360,7 @@ bool levelDBList::insert( size_t index, std::string value )
     }
 
     std::string key = levelDB::joinkey( { this->m_name, S( index ) } ); /* 拼一下键值 */
-    bool flag       = this->m_db->Put( key, value );
+    bool flag = this->m_db->Put( key, value );
     if ( !flag )
     {
         return false;
@@ -368,12 +369,17 @@ bool levelDBList::insert( size_t index, std::string value )
     this->length++;
     key = levelDB::joinkey( { this->m_name, "length" } );
     this->m_db->Put( key, S( length ) );
+
     return true;
 }
 
 bool levelDBList::remove( size_t index )
 {
-    for ( size_t i = index; i < this->length; i++ )
+    if ( !index )
+    {
+        return this->pop_front();
+    }
+    for ( size_t i = index; i < this->length - 1; i++ )
     {
         std::string key1 = levelDB::joinkey( { this->m_name, S( i + 1 ) } ); /* 拼一下键值 */
         std::string key2 = levelDB::joinkey( { this->m_name, S( i ) } ); /* 拼一下键值 */
@@ -389,11 +395,14 @@ bool levelDBList::remove( size_t index )
             return false;
         }
     }
-
     this->length--;
     std::string key = levelDB::joinkey( { this->m_name, "length" } );
     this->m_db->Put( key, S( length ) );
     return true;
+    /*
+        1 2 3 4 5
+
+    */
 }
 
 bool levelDBList::remove( std::string value )
