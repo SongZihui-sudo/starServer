@@ -408,7 +408,7 @@ bool levelDBList::remove( size_t index )
 bool levelDBList::remove( std::string value )
 {
     int32_t index = this->find( value );
-    if ( index > 0 )
+    if ( index != -1 )
     {
         return this->remove( index );
     }

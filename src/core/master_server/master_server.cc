@@ -2,6 +2,7 @@
 #include "core/tcpServer/tcpserver.h"
 #include "modules/Scheduler/scheduler.h"
 #include "modules/common/common.h"
+#include "modules/consistency/lease/lease.h"
 #include "modules/db/database.h"
 #include "modules/log/log.h"
 #include "modules/meta_data/chunk.h"
@@ -115,6 +116,8 @@ bool master_server::find_file_meta_data( std::vector< std::string >& res, std::s
     /* 先使用副本替换失联的 chunk server 上的chunk */
     std::vector< std::string > arr;
     file::ptr cur_file( new file( file_url, this->max_chunk_size ) );
+    cur_file->open( file_operation::read, this->m_db );
+    cur_file->close();
 
     for ( size_t i = 0; i < cur_file->chunks_num(); i++ )
     {
@@ -478,6 +481,7 @@ bool master_server::login( std::string user_name, std::string pwd )
     {
         INFO_STD_STREAM_LOG( g_logger ) << "user: " << user_name << " "
                                         << "Login success！" << Logger::endl();
+        this->m_client_id = user_name;
 
         this->is_login = true;
 
@@ -620,13 +624,7 @@ void master_server::deal_with_101( std::vector< void* > args )
     {
         cur.data = "File Not Find!";
     }
-    BREAK( g_logger );
     tcpserver::send( remote_sock, cur );
-    BREAK( g_logger );
-    self->m_lease_control->destory_invalid_lease();
-    BREAK( g_logger );
-    /* 颁发一个60秒的租约 */
-    self->m_lease_control->new_lease();
 }
 
 /*
@@ -642,27 +640,32 @@ void master_server::deal_with_104( std::vector< void* > args )
         remote_sock.reset( ( MSocket* )args[3] );
         std::string result = "true";
 
-        /* 等待租约全部过期 */
-        while ( !self->m_lease_control->is_all_late() )
-        {
-        }
-
         file::ptr cur_file = nullptr;
         int64_t cur_time   = getTime();
         chunk_server_info cur_server;
         std::string cliend_id = std::get< 0 >( crash_record[cur.customize[1]] );
-        DEBUG_STD_STREAM_LOG( g_logger ) << "client id: " << cliend_id << Logger::endl();
+
         if ( !cliend_id.empty() || cur_time - std::get< 1 >( crash_record[cur.customize[1]] ) < 60 )
         {
             cur_server = chunk_server_list[cliend_id];
         }
         else
         {
-            cliend_id  = cur.customize[1];
+            cliend_id  = self->m_client_id;
             cur_server = random_choice_server();
             crash_record[cliend_id]
             = std::tuple< std::string, size_t >( cur_server.join(), getTime() );
         }
+        DEBUG_STD_STREAM_LOG( g_logger ) << "client id: " << cliend_id << Logger::endl();
+        /* 查看关于当前文件的租约是否过期 */
+        if ( self->m_lease_control->is_availeable_by_file( file::join( cur.file_name, cur.path ) ) )
+        {
+            return;
+        }
+        BREAK( g_logger );
+        /* 给当前的客户端发放一个租约 */
+        self->m_lease_control->new_lease( cliend_id, file::join( cur.file_name, cur.path ) );
+
         size_t sum_size     = 0;
         size_t chunks_index = 0;
         while ( true )
@@ -874,6 +877,16 @@ void master_server::deal_with_117( std::vector< void* > args )
     std::string res           = "ok";
     std::string pre_file_url  = file::join( file_name, file_path );
     bool is_exist             = false;
+
+    /* 查看关于当前文件的租约是否过期 */
+    if ( self->m_lease_control->is_availeable_by_file( file::join( cur.file_name, cur.path ) ) )
+    {
+        return;
+    }
+
+    /* 给当前的客户端发放一个租约 */
+    self->m_lease_control->new_lease( self->m_client_id, file::join( cur.file_name, cur.path ) );
+
     for ( size_t i = 0; i < file_url_list->size(); i++ )
     {
         if ( file_url_list->get( i ) == pre_file_url )
@@ -899,6 +912,7 @@ void master_server::deal_with_117( std::vector< void* > args )
         cur_file->open( file_operation::read, self->m_db );
         cur_file->close();
         file_url_list->remove( cur_file->get_url() );
+        self->m_db->Put( cur_file->get_url(), S( 0 ) );
 
         std::string server_addr;
         int16_t server_port;
@@ -1058,9 +1072,6 @@ void master_server::deal_with_126( std::vector< void* > args )
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
 
-    // self->m_lease_control->destory_invalid_lease();
-    self->m_lease_control->new_lease(); /* 颁发一个新租约 */
-
     BREAK( g_logger );
     cur.reset(
     127, self->m_sock->getLocalAddress()->toString(), "All file Meta data", "", 0, "None", {} );
@@ -1109,6 +1120,16 @@ void master_server::deal_with_134( std::vector< void* > args )
     std::string res           = "ok";
     std::string pre_file_url  = file::join( file_name, file_path );
     bool is_exist             = false;
+
+    /* 查看关于当前文件的租约是否过期 */
+    if ( self->m_lease_control->is_availeable_by_file( file::join( cur.file_name, cur.path ) ) )
+    {
+        return;
+    }
+
+    /* 给当前的客户端发放一个租约 */
+    self->m_lease_control->new_lease( self->m_client_id, file::join( cur.file_name, cur.path ) );
+
     for ( size_t i = 0; i < file_url_list->size(); i++ )
     {
         if ( file_url_list->get( i ) == pre_file_url )
@@ -1134,6 +1155,7 @@ void master_server::deal_with_134( std::vector< void* > args )
         cur_file->open( file_operation::read, self->m_db );
         cur_file->close();
         file_url_list->remove( cur_file->get_url() );
+        self->m_db->Put( cur_file->get_url(), S( 0 ) );
 
         std::string server_addr;
         int16_t server_port;
@@ -1221,8 +1243,8 @@ void master_server::deal_with_134( std::vector< void* > args )
         cur_file->open( file_operation::write, self->m_db );
         std::string rename_new_name = file_new_name;
         if ( j )
-        {   
-            rename_new_name = file::join_copy_name(rename_new_name, j);
+        {
+            rename_new_name = file::join_copy_name( rename_new_name, j );
         }
         if ( !cur_file->rename( rename_new_name ) )
         {
@@ -1246,11 +1268,15 @@ void master_server::deal_with_135( std::vector< void* > args )
     MSocket::ptr remote_sock;
     remote_sock.reset( ( MSocket* )args[3] );
 
-    /* 等待租约全部过期 */
-    BREAK( g_logger );
-    while ( !self->m_lease_control->is_all_late() )
+    /* 查看关于当前文件的租约是否过期 */
+    if ( self->m_lease_control->is_availeable_by_file( file::join( cur.file_name, cur.path ) ) )
     {
+        return;
     }
+
+    /* 给当前的客户端发放一个租约 */
+    self->m_lease_control->new_lease( self->m_client_id, file::join( cur.file_name, cur.path ) );
+
     std::string file_name = cur.file_name;
     std::string file_path = cur.path;
 
@@ -1328,6 +1354,8 @@ void master_server::deal_with_135( std::vector< void* > args )
             }
         }
         file_url_list->remove( fp->join() );
+        self->m_db->Put( fp->get_url(), S( 0 ) );
+
         BREAK( g_logger );
         if ( !chunk_server_meta_data[chunk_server_info::join( server_address, server_port )].empty() )
         {

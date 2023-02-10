@@ -4,19 +4,24 @@
 #include "modules/thread/thread.h"
 #include <asm-generic/errno.h>
 #include <cstdint>
+#include <string>
 
 namespace star
 {
 
 static Logger::ptr g_logger( STAR_NAME( "lease_logger" ) );
 static std::string lease_id = "";
-bool lease::available       = true;
+bool lease::available       = false;
 
 lease::lease( int32_t lease_times )
 {
     this->m_id      = random_string( 16 );
     this->m_secends = lease_times;
-    this->m_timer.reset( new Timer( this->lease_invalid, lease_times ) );
+}
+
+void lease::start()
+{
+    this->m_timer.reset( new Timer( this->lease_invalid, this->m_secends ) );
     /* 启动一个定时器 */
     this->m_timer->run();
     this->available = true;
@@ -45,17 +50,27 @@ void lease::lease_invalid()
     lease::available = false;
 }
 
-void lease_manager::new_lease()
+void lease_manager::new_lease( std::string file_id, std::string client_id )
 {
     lease::ptr new_lease( new lease( this->default_lease_time ) );
     this->lease_tab[new_lease->get_id()] = new_lease;
+    this->m_client_to_lease[client_id]   = new_lease;
+    this->m_file_to_lease[file_id]       = new_lease->get_id();
+    this->m_lease_id__to_file[new_lease->get_id()].push_back( file_id );
+    this->lease_to_client[new_lease->get_id()] = client_id;
+    new_lease->start();
 }
 
-void lease_manager::destory_lease( std::string id )
+void lease_manager::destory_lease( std::string lease_id )
 {
 
-    if ( this->lease_tab.erase( id ) )
+    if ( this->lease_tab.erase( lease_id ) )
     {
+        this->m_lease_id__to_file.erase( lease_id );
+        this->lease_to_client.erase( lease_id );
+        std::string client_id = this->lease_to_client[lease_id];
+        this->lease_to_client.erase( lease_id );
+        this->m_client_to_lease.erase( client_id );
         DEBUG_STD_STREAM_LOG( g_logger ) << "%D"
                                          << "Remove Lease Successfully!" << Logger::endl();
         BREAK( g_logger );

@@ -9,6 +9,8 @@
 #include <inttypes.h>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace star
 {
@@ -46,6 +48,8 @@ public:
      */
     Threading::Thread_Status get_status() { return m_timer->get_status(); }
 
+    void start();
+
 private:
     static bool available;
     std::string m_id   = "";
@@ -69,10 +73,10 @@ public:
 
 public:
     /* 授权新租约 */
-    void new_lease();
+    void new_lease( std::string file_id, std::string client_id );
 
     /* 销毁租约 */
-    void destory_lease( std::string id );
+    void destory_lease( std::string lease_id );
 
     /* 续约 */
     void renew_lease( std::string id );
@@ -83,9 +87,56 @@ public:
     /* 检查全部租约，然后把过期的租约销毁掉 */
     void destory_invalid_lease();
 
+    /* 通过 id 查询租约是否过期 */
+    bool is_available_by_id( std::string lease_id )
+    {
+
+        return this->lease_tab[lease_id]->is_available();
+    }
+
+    /* 通过客户端查询租约是否过期 */
+    bool is_available_by_client( std::string client_id )
+    {
+
+        return this->m_client_to_lease[client_id]->is_available();
+    }
+
+    /* 通过文件查询租约是否过期 */
+    bool is_availeable_by_file( std::string file_id )
+    {
+        return this->lease_tab[this->m_file_to_lease[file_id]]->is_available();
+    }
+
+    /* 通过文件 id 获取 lease id */
+    std::string get_leaseid_by_file( std::string file_id )
+    {
+
+        return this->m_file_to_lease[file_id];
+    }
+
+    /* 通过client id 获取 lease id */
+    std::string get_leaseid_by_client( std::string client_id )
+    {
+
+        return this->m_client_to_lease[client_id]->get_id();
+    }
+
+    /* 通过lease id 获取 lease 对象 */
+    lease::ptr get_lease( std::string lease_id ) { return this->lease_tab[lease_id]; }
+
+    /* 通过 lease id 获取 client id */
+    std::string get_client_id( std::string lease_id )
+    {
+        return this->lease_to_client[lease_id];
+    }
+
 private:
     std::map< std::string, lease::ptr > lease_tab; /* 客户端与租约的表 */
+    std::unordered_map< std::string, std::string > lease_to_client; /* 通过 lease id 获取 client id */
     int32_t default_lease_time;
+    std::unordered_map< std::string, std::vector< std::string > > m_lease_id__to_file; /* 通过租约id索引文件 */
+    std::unordered_map< std::string, lease::ptr > m_client_to_lease; /* 客户端与租约的索引 */
+    std::unordered_map< std::string, std::string > m_file_to_lease; /* file 与 租约 id 的索引 */
 };
 
 }

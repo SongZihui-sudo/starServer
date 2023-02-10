@@ -145,6 +145,7 @@ private:
     bool is_login = false;
     static size_t copys;                   /* 副本个数 */
     static levelDBList::ptr file_url_list; /* 文件名列表 */
+    std::string m_client_id;
 };
 }
 

@@ -240,7 +240,7 @@ void LogFormatter::format( const char* pattern, va_list args )
                     pattern++;
                     break;
                 case 'D':
-                    u64_temp = va_arg( args, long long );
+                    u64_temp = getTime();
                     m_event->set_time( u64_temp );
                     TimeItem::format( current, m_event );
                     pattern++;
