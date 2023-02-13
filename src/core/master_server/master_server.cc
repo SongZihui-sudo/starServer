@@ -912,7 +912,6 @@ void master_server::deal_with_117( std::vector< void* > args )
         cur_file->open( file_operation::read, self->m_db );
         cur_file->close();
         file_url_list->remove( cur_file->get_url() );
-        self->m_db->Put( cur_file->get_url(), S( 0 ) );
 
         std::string server_addr;
         int16_t server_port;
@@ -1155,7 +1154,6 @@ void master_server::deal_with_134( std::vector< void* > args )
         cur_file->open( file_operation::read, self->m_db );
         cur_file->close();
         file_url_list->remove( cur_file->get_url() );
-        self->m_db->Put( cur_file->get_url(), S( 0 ) );
 
         std::string server_addr;
         int16_t server_port;

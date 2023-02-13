@@ -170,6 +170,7 @@ bool file::rename( std::string new_name )
         }
         cp->close();
     }
+    this->m_db->Put( this->get_url(), S( 0 ) );
     this->m_name = new_name;
     this->m_url  = levelDB::joinkey( { this->m_name, this->m_path } );
     this->m_url.pop_back();
@@ -197,6 +198,7 @@ bool file::move( std::string new_path )
         }
         cp->close();
     }
+    this->m_db->Put( this->get_url(), S( 0 ) );
     this->m_path = new_path;
     this->m_url  = levelDB::joinkey( { this->m_name, this->m_path } );
     this->m_url.pop_back();
