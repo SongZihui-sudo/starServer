@@ -783,6 +783,7 @@ void master_server::deal_with_104( std::vector< void* > args )
                 cur = current_protocol->get_protocol_struct();
                 if ( cur.bit != 104 )
                 {
+                    BREAK(g_logger);
                     FATAL_STD_STREAM_LOG( g_logger )
                     << "%D"
                     << "error server bit command!" << Logger::endl();
@@ -790,15 +791,16 @@ void master_server::deal_with_104( std::vector< void* > args )
                 }
             }
         }
-
+        BREAK(g_logger);
         cur.reset( 131, "", "", "", 0, "finish", {} );
         tcpserver::send( remote_sock, cur );
-
+        BREAK(g_logger);
         if ( !cur_file )
         {
+            BREAK(g_logger);
             return;
         }
-
+        BREAK(g_logger);
         /* 制作副本 */
         INFO_STD_STREAM_LOG( g_logger ) << "Begin Making copy file chunk" << Logger::endl();
         for ( size_t i = 1; i < self->copys; i++ )
